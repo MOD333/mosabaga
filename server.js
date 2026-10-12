@@ -122,6 +122,24 @@ function buildState() {
   const inRange = game.questionIndex >= 0 && game.questionIndex < TOTAL_QUESTIONS;
   const current = inRange ? gameData[game.questionIndex] : null;
 
+  const roster = PLAYERS.map((player) => ({
+    id: player.id,
+    name: player.name,
+    emoji: player.emoji,
+    tone: player.tone,
+    score: game.scores[player.id] || 0,
+    connected: isConnected(player.id),
+    claimed: Boolean(game.claims[player.id]),
+    lockedOut: game.lockedOut.has(player.id),
+    buzzed: game.buzzedPlayerId === player.id,
+  }));
+
+  // الفائز (يُحسب فقط عند نهاية المسابقة) — يُستخدم في شاشة الفوز
+  const top =
+    roster.length > 0
+      ? roster.reduce((best, player) => (player.score > best.score ? player : best), roster[0])
+      : null;
+
   return {
     phase: game.phase,
     questionIndex: game.questionIndex,
@@ -138,17 +156,19 @@ function buildState() {
     buzzedPlayerName: game.buzzedPlayerId ? nameOf(game.buzzedPlayerId) : null,
     answerRevealed: game.answerRevealed,
     lastAward: game.lastAward,
-    players: PLAYERS.map((player) => ({
-      id: player.id,
-      name: player.name,
-      emoji: player.emoji,
-      tone: player.tone,
-      score: game.scores[player.id] || 0,
-      connected: isConnected(player.id),
-      claimed: Boolean(game.claims[player.id]),
-      lockedOut: game.lockedOut.has(player.id),
-      buzzed: game.buzzedPlayerId === player.id,
-    })),
+    winner:
+      game.phase === 'finished' && top
+        ? {
+            id: top.id,
+            name: top.name,
+            emoji: top.emoji,
+            tone: top.tone,
+            score: top.score,
+            tied:
+              roster.filter((player) => player.score === top.score).length > 1,
+          }
+        : null,
+    players: roster,
     connectedCount: Object.keys(connectedPlayers).length,
     serverTime: Date.now(),
   };
@@ -691,6 +711,8 @@ if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) return next();
+    // ملف ثابت مفقود (له امتداد) → 404 حقيقي بدل إرجاع صفحة HTML
+    if (/\.[a-z0-9]{2,5}$/i.test(req.path)) return next();
     res.sendFile(path.join(clientDist, 'index.html'));
   });
   console.log('📦 يتم خدمة الواجهة من client/dist');

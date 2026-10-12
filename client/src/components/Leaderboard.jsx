@@ -28,10 +28,10 @@ export default function Leaderboard({ players = [], highlightId = null, meId = n
             <motion.div
               key={player.id}
               layout
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: 20, transition: { duration: 0.18 } }}
-              transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className={cx(
                 'flex items-center gap-3 rounded-2xl border bg-white transition-colors',
                 compact ? 'px-3 py-2' : 'px-4 py-3',
@@ -69,10 +69,13 @@ export default function Leaderboard({ players = [], highlightId = null, meId = n
               <span className="flex shrink-0 items-center gap-1.5">
                 {Number(deltaById[player.id]) > 0 && (
                   <motion.span
-                    initial={{ opacity: 0, scale: 0.7, y: 6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 20 }}
-                    className="rounded-full bg-sage-100 px-2 py-0.5 font-display text-xs font-black text-sage-700"
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: 1, scale: [1, 1.18, 1] }}
+                    transition={{
+                      opacity: { duration: 0.2 },
+                      scale: { duration: 0.55, repeat: 3, ease: 'easeInOut' },
+                    }}
+                    className="rounded-full bg-sage-200 px-2 py-0.5 font-display text-xs font-black text-sage-800 ring-1 ring-sage-400"
                   >
                     +{deltaById[player.id]}
                   </motion.span>

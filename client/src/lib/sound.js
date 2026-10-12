@@ -69,6 +69,15 @@ export const sound = {
       tone({ freq, dur: 0.14, type: 'triangle', vol: 0.05, delay: i * 0.075 })
     );
   },
+  /** فانفير الفوز — يُستخدم كبديل احتياطي لملف victory.mp3 */
+  victory() {
+    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((freq, i) =>
+      tone({ freq, dur: 0.3, type: 'triangle', vol: 0.06, delay: i * 0.14 })
+    );
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq) =>
+      tone({ freq, dur: 1.3, type: 'sine', vol: 0.045, delay: 0.72 })
+    );
+  },
   wrong() {
     [233, 185, 146].forEach((freq, i) =>
       tone({ freq, dur: 0.18, type: 'sawtooth', vol: 0.045, delay: i * 0.085 })

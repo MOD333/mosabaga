@@ -5,6 +5,7 @@ import { socket } from '../socket.js';
 import sound, { vibrate } from '../lib/sound.js';
 import { Avatar, Card, ConnectionDot, Pill, SoftButton, cx } from './ui.jsx';
 import Leaderboard from './Leaderboard.jsx';
+import VictoryScreen from './VictoryScreen.jsx';
 import { playerById, toneOf } from '../data/players.js';
 import { TIMER_DURATION } from '../data/gameData.js';
 
@@ -24,6 +25,8 @@ export default function PlayerView({ playerId, onExit }) {
   // فرق النقاط في الجولة الأخيرة (لعرض "+X")
   const [scoreDelta, setScoreDelta] = useState(0);
   const prevScoreRef = useRef(null);
+  // إخفاء شاشة الفوز يدوياً
+  const [victoryDismissed, setVictoryDismissed] = useState(false);
 
   const buzzLock = useRef(false);
   const shake = useAnimation();
@@ -223,6 +226,19 @@ export default function PlayerView({ playerId, onExit }) {
     () => (scoreDelta > 0 ? { [playerId]: scoreDelta } : {}),
     [scoreDelta, playerId]
   );
+
+  /* ---------------------- شاشة الفوز ---------------------- */
+  const topPlayer = useMemo(() => {
+    if (!players.length) return null;
+    return [...players].sort((a, b) => b.score - a.score)[0];
+  }, [players]);
+
+  const victoryWinner = state?.winner || (phase === 'finished' ? topPlayer : null);
+
+  // تصفير حالة الإخفاء عند بدء مسابقة جديدة
+  useEffect(() => {
+    if (phase !== 'finished') setVictoryDismissed(false);
+  }, [phase]);
 
   /* ---------------------- الضغط ---------------------- */
   const handleBuzz = useCallback(() => {
@@ -483,18 +499,17 @@ export default function PlayerView({ playerId, onExit }) {
         {state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full max-w-md rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-soft-lg"
+            initial={{ opacity: 0, y: -16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+            className="w-full max-w-lg rounded-3xl border border-stone-100 bg-white p-8 text-center shadow-2xl"
           >
-            <p className="mb-2 text-[11px] font-bold tracking-wide text-stone-400">السؤال</p>
+            <p className="mb-3 text-[11px] font-bold tracking-[0.2em] text-stone-400">السؤال</p>
             <p
               className={cx(
-                'font-display font-black leading-relaxed text-stone-800 text-balance',
-                /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(state.question.q)
-                  ? 'text-3xl tracking-[0.14em]'
-                  : 'text-2xl'
+                'font-display font-black leading-relaxed text-stone-900 text-balance',
+                'text-3xl md:text-5xl',
+                /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(state.question.q) && 'tracking-[0.12em]'
               )}
             >
               {state.question.q}
@@ -642,6 +657,19 @@ export default function PlayerView({ playerId, onExit }) {
               </div>
             </Card>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ شاشة الفوز النهائية ============ */}
+      <AnimatePresence>
+        {phase === 'finished' && victoryWinner && !victoryDismissed && (
+          <VictoryScreen
+            key="victory"
+            winner={victoryWinner}
+            meId={playerId}
+            standings={players}
+            onDismiss={() => setVictoryDismissed(true)}
+          />
         )}
       </AnimatePresence>
     </motion.div>

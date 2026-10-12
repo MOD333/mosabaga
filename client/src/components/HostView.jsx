@@ -16,6 +16,7 @@ import {
 import { toneOf } from '../data/players.js';
 import TimerRing from './TimerRing.jsx';
 import Leaderboard from './Leaderboard.jsx';
+import VictoryScreen from './VictoryScreen.jsx';
 import { TIMER_DURATION, TOTAL_QUESTIONS } from '../data/gameData.js';
 
 /**
@@ -30,6 +31,8 @@ export default function HostView({ onExit }) {
   const [joinBase, setJoinBase] = useState('');
   // قائمة المتصلين الحيّة — تصل فوراً عبر حدث `update_players`
   const [livePlayers, setLivePlayers] = useState([]);
+  // إخفاء شاشة الفوز يدوياً (لعرض النتائج والتحكم مرة أخرى)
+  const [victoryDismissed, setVictoryDismissed] = useState(false);
 
   const shake = useAnimation();
   const lastSecond = useRef(-1);
@@ -303,6 +306,18 @@ export default function HostView({ onExit }) {
           timeup: 'انتهى الوقت',
           finished: 'انتهت المسابقة',
         }[phase];
+
+  /* ---------------------- شاشة الفوز ---------------------- */
+  const topPlayer = useMemo(() => {
+    if (!players.length) return null;
+    return [...players].sort((a, b) => b.score - a.score)[0];
+  }, [players]);
+
+  const victoryWinner = state?.winner || (phase === 'finished' ? topPlayer : null);
+
+  useEffect(() => {
+    if (phase !== 'finished') setVictoryDismissed(false);
+  }, [phase]);
 
   /* ================================================================ */
   return (
@@ -750,7 +765,7 @@ export default function HostView({ onExit }) {
                 <span className="mb-2 inline-block text-5xl">🏁</span>
                 <h2 className="font-display text-3xl font-black text-stone-800">النتائج النهائية</h2>
                 <div className="mt-6 text-right">
-                  <Leaderboard players={roster} />
+                  <Leaderboard players={roster} highlightId={victoryWinner?.id} />
                 </div>
                 <div className="mt-7 flex flex-wrap justify-center gap-3">
                   <SoftButton variant="primary" size="lg" onClick={() => send('host:resetGame')}>
@@ -763,6 +778,19 @@ export default function HostView({ onExit }) {
               </Card>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ شاشة الفوز (تظهر فوق كل شيء) ============ */}
+      <AnimatePresence>
+        {phase === 'finished' && victoryWinner && !victoryDismissed && (
+          <VictoryScreen
+            key="victory"
+            winner={victoryWinner}
+            meId={null}
+            standings={players}
+            onDismiss={() => setVictoryDismissed(true)}
+          />
         )}
       </AnimatePresence>
 
