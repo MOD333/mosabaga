@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   نظام التصميم — Soft & Light (Vanilla / Beige)
+   خلفية عاجية دافئة • بطاقات بيضاء • ظلال ناعمة • زوايا دائرية
+   ============================================================ */
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background-color: #faf9f6;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Tajawal', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background-color: #faf9f6;
+    color: #292524; /* stone-800 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: #f4d592;
+    color: #5f4215;
+  }
+
+  button,
+  input {
+    font-family: inherit;
+  }
+
+  input::placeholder {
+    color: #a8a29e;
+  }
+
+  /* منع التكبير التلقائي في iOS */
+  input {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  /* ---------- البطاقة الناعمة ---------- */
+  .card {
+    @apply rounded-2xl border border-stone-100 bg-white;
+    box-shadow: 0 2px 10px -3px rgba(120, 100, 70, 0.14);
+  }
+
+  .card-lg {
+    @apply rounded-3xl border border-stone-100 bg-white;
+    box-shadow: 0 8px 26px -10px rgba(120, 100, 70, 0.2);
+  }
+
+  /* ---------- خلفية زخرفية هادئة ---------- */
+  .bg-dots {
+    background-image: radial-gradient(rgba(180, 165, 140, 0.22) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .bg-glow {
+    background:
+      radial-gradient(60rem 40rem at 85% -10%, rgba(244, 213, 146, 0.35), transparent 60%),
+      radial-gradient(50rem 34rem at 5% 105%, rgba(178, 203, 169, 0.28), transparent 60%);
+  }
+
+  /* ---------- التمرير الناعم ---------- */
+  .scroll-soft {
+    scrollbar-width: thin;
+    scrollbar-color: #ddd6cb transparent;
+  }
+
+  .scroll-soft::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scroll-soft::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-soft::-webkit-scrollbar-thumb {
+    background: #e3ddd2;
+    border-radius: 999px;
+  }
+
+  .scroll-soft::-webkit-scrollbar-thumb:hover {
+    background: #cfc7b8;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}

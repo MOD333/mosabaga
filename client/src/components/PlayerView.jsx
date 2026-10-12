@@ -1,0 +1,649 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
+
+import { socket } from '../socket.js';
+import sound, { vibrate } from '../lib/sound.js';
+import { Avatar, Card, ConnectionDot, Pill, SoftButton, cx } from './ui.jsx';
+import Leaderboard from './Leaderboard.jsx';
+import { playerById, toneOf } from '../data/players.js';
+import { TIMER_DURATION } from '../data/gameData.js';
+
+/**
+ * واجهة اللاعب — زر الجرس الكبير + النقاط.
+ */
+export default function PlayerView({ playerId, onExit }) {
+  const player = playerById(playerId);
+  const tone = toneOf(player?.tone);
+
+  const [state, setState] = useState(null);
+  const [remaining, setRemaining] = useState(TIMER_DURATION);
+  const [connected, setConnected] = useState(socket.connected);
+  const [optimistic, setOptimistic] = useState(false);
+  const [replaced, setReplaced] = useState(false);
+  const [toast, setToast] = useState(null);
+  // فرق النقاط في الجولة الأخيرة (لعرض "+X")
+  const [scoreDelta, setScoreDelta] = useState(0);
+  const prevScoreRef = useRef(null);
+
+  const buzzLock = useRef(false);
+  const shake = useAnimation();
+
+  /* ---------------------- إشعار مؤقت ---------------------- */
+  const notify = useCallback((message, tone_ = 'neutral') => {
+    const next = { message, tone: tone_, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` };
+    setToast(next);
+    window.setTimeout(() => {
+      setToast((current) => (current && current.id === next.id ? null : current));
+    }, 2400);
+  }, []);
+
+  /* ---------------------- تعريف الهوية ---------------------- */
+  useEffect(() => {
+    const identify = () => {
+      socket.emit('player:identify', { playerId }, (response) => {
+        if (response?.ok) {
+          setReplaced(false);
+          setState(response.state);
+        }
+      });
+    };
+
+    identify();
+    socket.on('connect', identify);
+    socket.on('player:replaced', () => setReplaced(true));
+    socket.on('disconnect', () => setConnected(false));
+    socket.on('connect', () => setConnected(true));
+
+    return () => {
+      socket.off('connect', identify);
+      socket.off('player:replaced');
+      socket.off('disconnect');
+      socket.off('connect');
+      socket.emit('player:leave');
+    };
+  }, [playerId]);
+
+  /* ---------------------- أحداث اللعبة ---------------------- */
+  useEffect(() => {
+    const onState = (next) => {
+      setState(next);
+      setRemaining(next.remaining);
+      setOptimistic(false);
+    };
+
+    const onTick = (payload) => setRemaining(payload.remaining);
+
+    const onStarted = (payload) => {
+      setOptimistic(false);
+      setRemaining(payload.remaining);
+      sound.unlock();
+      sound.start();
+    };
+
+    const onResumed = (payload) => setRemaining(payload.remaining);
+    const onReset = (payload) => setRemaining(payload.remaining);
+
+    const onBuzzed = (payload) => {
+      sound.buzz();
+      vibrate([30, 45, 30]);
+      if (payload.playerId === playerId) notify('أنت الأول! جاوب الآن', 'honey');
+    };
+
+    const onCorrect = (payload) => {
+      if (payload.playerId === playerId) {
+        sound.correct();
+        vibrate([20, 35, 20, 35]);
+        notify(`إجابة صحيحة! +${payload.points}`, 'sage');
+      }
+    };
+
+    const onWrong = (payload) => {
+      if (payload.playerId === playerId) {
+        sound.wrong();
+        vibrate([110]);
+        notify('إجابة خاطئة — خرجت من هذه الجولة', 'coral');
+      }
+    };
+
+    const onTimeUp = () => {
+      sound.timeup();
+      vibrate([50, 50, 50]);
+      shake.start({
+        x: [0, -12, 12, -8, 8, -4, 4, 0],
+        transition: { duration: 0.55, ease: 'easeInOut' },
+      });
+    };
+
+    const onResetBuzzers = () => {
+      setOptimistic(false);
+      notify('تمت إعادة الجولة — الجرس مفتوح', 'sky');
+    };
+
+    const onGameReset = () => notify('بدأت مسابقة جديدة', 'sky');
+
+    const onQuestionRevealed = () => {
+      sound.unlock();
+      sound.start();
+      notify('ظهر السؤال! استعد', 'honey');
+    };
+
+    const onHardReset = () => {
+      setOptimistic(false);
+      notify('تم تصفير اللعبة بالكامل', 'coral');
+    };
+
+    socket.on('game:state', onState);
+    socket.on('timer:tick', onTick);
+    socket.on('timer:started', onStarted);
+    socket.on('timer:resumed', onResumed);
+    socket.on('timer:reset', onReset);
+    socket.on('buzzed', onBuzzed);
+    socket.on('correct', onCorrect);
+    socket.on('wrong', onWrong);
+    socket.on('timer:timeup', onTimeUp);
+    socket.on('buzzers:reset', onResetBuzzers);
+    socket.on('game:reset', onGameReset);
+    socket.on('question:revealed', onQuestionRevealed);
+    socket.on('game:hard_reset', onHardReset);
+
+    return () => {
+      socket.off('game:state', onState);
+      socket.off('timer:tick', onTick);
+      socket.off('timer:started', onStarted);
+      socket.off('timer:resumed', onResumed);
+      socket.off('timer:reset', onReset);
+      socket.off('buzzed', onBuzzed);
+      socket.off('correct', onCorrect);
+      socket.off('wrong', onWrong);
+      socket.off('timer:timeup', onTimeUp);
+      socket.off('buzzers:reset', onResetBuzzers);
+      socket.off('game:reset', onGameReset);
+      socket.off('question:revealed', onQuestionRevealed);
+      socket.off('game:hard_reset', onHardReset);
+    };
+  }, [playerId, notify, shake]);
+
+  /* ---------------------- قيم مشتقة ---------------------- */
+  const players = state?.players || [];
+  const me = useMemo(() => players.find((item) => item.id === playerId) || null, [players, playerId]);
+  const myScore = me?.score ?? 0;
+  const myRank = useMemo(() => {
+    const index = players.findIndex((item) => item.id === playerId);
+    return index === -1 ? null : index + 1;
+  }, [players, playerId]);
+
+  const phase = state?.phase || 'lobby';
+  const iBuzzed = state?.buzzedPlayerId === playerId;
+  const iLockedOut = Boolean(me?.lockedOut);
+  const someoneElseBuzzed = Boolean(state?.buzzedPlayerId) && !iBuzzed;
+  const otherBuzzer = someoneElseBuzzed
+    ? players.find((item) => item.id === state.buzzedPlayerId)
+    : null;
+
+  const canBuzz =
+    phase === 'question' &&
+    Boolean(state?.isQuestionRevealed) &&
+    Boolean(state?.timerRunning) &&
+    !state?.buzzedPlayerId &&
+    !iLockedOut &&
+    !optimistic;
+
+  const isDanger = remaining <= 3 && remaining > 0;
+
+  /* ---------------------- لوحة المتصدرين على جوال اللاعب ---------------------- */
+  // تظهر عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
+  const showLeaderboard =
+    phase !== 'lobby' &&
+    phase !== 'finished' &&
+    (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
+
+  const showBuzzer = !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+
+  // فرق نقاطي في الجولة الأخيرة (يُصفَّر عند عرض سؤال جديد)
+  useEffect(() => {
+    if (prevScoreRef.current === null) {
+      prevScoreRef.current = myScore;
+      return;
+    }
+    if (myScore > prevScoreRef.current) {
+      setScoreDelta(myScore - prevScoreRef.current);
+      prevScoreRef.current = myScore;
+    } else if (myScore < prevScoreRef.current) {
+      setScoreDelta(0); // تصفير كامل أو خصم يدوي
+      prevScoreRef.current = myScore;
+    }
+  }, [myScore]);
+
+  useEffect(() => {
+    if (state?.isQuestionRevealed) setScoreDelta(0);
+  }, [state?.isQuestionRevealed, state?.questionIndex]);
+
+  // كائن ثابت (memo) لتجنّب إعادة رسم صفوف لوحة المتصدرين بلا داعٍ
+  const deltaById = useMemo(
+    () => (scoreDelta > 0 ? { [playerId]: scoreDelta } : {}),
+    [scoreDelta, playerId]
+  );
+
+  /* ---------------------- الضغط ---------------------- */
+  const handleBuzz = useCallback(() => {
+    sound.unlock();
+    if (!canBuzz) {
+      vibrate(8);
+      return;
+    }
+    if (buzzLock.current) return;
+    buzzLock.current = true;
+    setOptimistic(true);
+    vibrate(28);
+    socket.emit('buzz', {}, (response) => {
+      buzzLock.current = false;
+      if (!response?.ok) {
+        setOptimistic(false);
+        vibrate([15, 35, 15]);
+      }
+    });
+    window.setTimeout(() => {
+      buzzLock.current = false;
+    }, 320);
+  }, [canBuzz]);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.code === 'Space' && event.target?.tagName !== 'INPUT') {
+        event.preventDefault();
+        handleBuzz();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleBuzz]);
+
+  /* ---------------------- شكل الجرس ---------------------- */
+  const buzzer = useMemo(() => {
+    if (iBuzzed || (optimistic && phase === 'question')) {
+      return { bg: 'bg-sage-300 text-sage-800', emoji: '🎤', label: 'أنت الأول!', hint: 'جاوب بصوت عالٍ' };
+    }
+    if (iLockedOut) {
+      return { bg: 'bg-coral-100 text-coral-700', emoji: '🚫', label: 'خرجت', hint: 'من هذه الجولة' };
+    }
+    if (someoneElseBuzzed || phase === 'buzzed') {
+      return { bg: 'bg-stone-100 text-stone-400', emoji: '🔒', label: 'مقفل', hint: 'ضغط أحدهم أولاً' };
+    }
+    if (canBuzz) {
+      return { bg: 'bg-honey-300 text-honey-800', emoji: '🔔', label: 'اضغط!', hint: 'أول من يضغط يفوز بالكلمة' };
+    }
+    if (phase === 'reveal' || phase === 'timeup') {
+      return { bg: 'bg-stone-100 text-stone-400', emoji: '⏳', label: 'انتهت الجولة', hint: 'بانتظار السؤال التالي' };
+    }
+    return { bg: 'bg-stone-100 text-stone-400', emoji: '🔔', label: 'استعد', hint: 'بانتظار المضيف' };
+  }, [canBuzz, iBuzzed, iLockedOut, optimistic, phase, someoneElseBuzzed]);
+
+  /* ---------------------- محتوى الحالة ---------------------- */
+  const statusCard = () => {
+    if (phase === 'lobby') {
+      return (
+        <Card className="w-full max-w-sm p-6 text-center">
+          <span className="mb-3 inline-block text-4xl animate-bob">🎮</span>
+          <p className="font-display text-xl font-black text-stone-800">أنت داخل المسابقة</p>
+          <p className="mt-2 text-sm leading-relaxed text-stone-500">
+            بانتظار أن يبدأ المضيف الجولة الأولى…
+          </p>
+        </Card>
+      );
+    }
+
+    if (phase === 'finished') {
+      return (
+        <Card className="w-full max-w-sm p-6 text-center">
+          <span className="mb-3 inline-block text-5xl">
+            {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
+          </span>
+          <p className="font-display text-2xl font-black text-stone-800">
+            {myRank === 1 ? 'مبروك! المركز الأول' : 'انتهت المسابقة'}
+          </p>
+          <p className="mt-2 text-sm text-stone-500">
+            مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
+          </p>
+          <div className="mt-5 space-y-1.5">
+            {players.slice(0, 4).map((item, index) => (
+              <div
+                key={item.id}
+                className={cx(
+                  'flex items-center gap-3 rounded-xl px-3 py-2',
+                  item.id === playerId ? 'bg-honey-100' : 'bg-stone-50'
+                )}
+              >
+                <span className="w-5 text-sm font-black text-stone-400">{index + 1}</span>
+                <Avatar player={item} size="xs" />
+                <span className="flex-1 truncate text-sm font-bold text-stone-700">{item.name}</span>
+                <span className="font-display font-black text-stone-800">{item.score}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      );
+    }
+
+    if (phase === 'reveal') {
+      const isWinner = state?.lastAward?.playerId === playerId;
+      return (
+        <Card className="w-full max-w-sm p-6 text-center">
+          <span className="mb-3 inline-block text-5xl">{isWinner ? '🏆' : '📖'}</span>
+          <p className={cx('font-display text-2xl font-black', isWinner ? 'text-sage-600' : 'text-stone-700')}>
+            {isWinner ? `إجابة صحيحة! +${state.lastAward.points}` : 'جاهز للسؤال التالي'}
+          </p>
+          {state?.question && (
+            <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
+              <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
+              <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
+            </div>
+          )}
+        </Card>
+      );
+    }
+
+    if (phase === 'timeup') {
+      return (
+        <Card className="w-full max-w-sm p-6 text-center">
+          <span className="mb-3 inline-block text-5xl">⌛</span>
+          <p className="font-display text-2xl font-black text-stone-700">انتهى الوقت!</p>
+          {state?.question && (
+            <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
+              <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
+              <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
+            </div>
+          )}
+        </Card>
+      );
+    }
+
+    // أثناء السؤال
+    if (!state?.isQuestionRevealed) {
+      return (
+        <Card className="w-full max-w-sm p-6 text-center">
+          <span className="mb-3 inline-block text-5xl animate-bob">⏳</span>
+          <p className="font-display text-2xl font-black text-stone-700">استعد للسؤال القادم…</p>
+          <p className="mt-2 text-sm leading-relaxed text-stone-500">
+            السؤال مخفي حالياً. سيظهر للجميع على الشاشة المشتركة بعد لحظات.
+          </p>
+        </Card>
+      );
+    }
+
+    if (iBuzzed || (optimistic && phase === 'question')) {
+      return (
+        <Card className="w-full max-w-sm border-sage-200 bg-sage-50 p-5 text-center">
+          <p className="font-display text-2xl font-black text-sage-700">🎤 أنت الأول!</p>
+          <p className="mt-1.5 text-sm text-sage-600">
+            جاوب بصوت عالٍ — نقاطك = الثواني المتبقية
+          </p>
+        </Card>
+      );
+    }
+
+    if (iLockedOut) {
+      return (
+        <Card className="w-full max-w-sm border-coral-200 bg-coral-50 p-5 text-center">
+          <p className="font-display text-xl font-black text-coral-700">✖ خارج هذه الجولة</p>
+          <p className="mt-1.5 text-sm text-coral-600">أجاب غيرك بشكل صحيح أو خرجت بخطأ.</p>
+        </Card>
+      );
+    }
+
+    if (someoneElseBuzzed || phase === 'buzzed') {
+      return (
+        <Card className="w-full max-w-sm p-5 text-center">
+          <p className="font-display text-xl font-black text-stone-700">
+            🔒 {otherBuzzer ? otherBuzzer.name : 'أحدهم'} ضغط أولاً
+          </p>
+          <p className="mt-1.5 text-sm text-stone-500">قد يعيد المضيف تشغيل المؤقت…</p>
+        </Card>
+      );
+    }
+
+    if (state?.timerRunning) {
+      return (
+        <Card className="w-full max-w-sm p-5 text-center">
+          <p className={cx('font-display text-3xl font-black', isDanger ? 'text-coral-500' : 'text-stone-800')}>
+            اضغط الآن!
+          </p>
+          <p className="mt-1.5 text-sm text-stone-500">
+            متبقٍ <span className="font-black tabular-nums" dir="ltr">{remaining.toFixed(1)}</span> ثانية
+          </p>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="w-full max-w-sm p-5 text-center">
+        <p className="font-display text-2xl font-black text-stone-300">استعد…</p>
+        <p className="mt-1.5 text-sm text-stone-500">اقرأ السؤال على الشاشة، الجرس سيعمل قريباً.</p>
+      </Card>
+    );
+  };
+
+  /* ================================================================ */
+  return (
+    <motion.div
+      animate={shake}
+      className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-cream bg-glow safe-top"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-dots opacity-40" />
+
+      {/* ============ الشريط العلوي ============ */}
+      <header className="relative z-10 px-4 pt-4">
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-2xl bg-white/80 px-3 py-2.5 shadow-soft backdrop-blur">
+          <Avatar player={player} size="md" />
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-base font-black text-stone-800">{player?.name}</p>
+            <ConnectionDot connected={connected} />
+          </div>
+
+          <div className={cx('rounded-2xl px-3 py-1.5 text-center', tone.soft)}>
+            <p className="text-[10px] font-bold text-stone-400">نقاطي</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <motion.p
+                key={myScore}
+                initial={{ scale: 1.3 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                className={cx('font-display text-xl font-black leading-none tabular-nums', tone.text)}
+              >
+                {myScore}
+              </motion.p>
+
+              {scoreDelta > 0 && (
+                <motion.span
+                  key={`delta-${scoreDelta}-${myScore}`}
+                  initial={{ opacity: 0, y: 8, scale: 0.7 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+                  className="font-display text-xs font-black text-sage-600"
+                >
+                  +{scoreDelta}
+                </motion.span>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onExit}
+            title="خروج"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-sm text-stone-500 transition-colors hover:bg-stone-200"
+          >
+            ✕
+          </button>
+        </div>
+      </header>
+
+      {/* ============ المحتوى ============ */}
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto scroll-soft px-5 py-4">
+        {state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
+          <motion.div
+            key={`q-${state.questionIndex}`}
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-md rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-soft-lg"
+          >
+            <p className="mb-2 text-[11px] font-bold tracking-wide text-stone-400">السؤال</p>
+            <p
+              className={cx(
+                'font-display font-black leading-relaxed text-stone-800 text-balance',
+                /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(state.question.q)
+                  ? 'text-3xl tracking-[0.14em]'
+                  : 'text-2xl'
+              )}
+            >
+              {state.question.q}
+            </p>
+          </motion.div>
+        )}
+
+        <motion.div
+          key={`${phase}-${state?.isQuestionRevealed}-${iBuzzed}-${iLockedOut}-${optimistic}`}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="flex w-full justify-center"
+        >
+          {statusCard()}
+        </motion.div>
+
+        {/* ===== لوحة المتصدرين (بين الجولات) ===== */}
+        {showLeaderboard && (
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-md"
+          >
+            <div className="mb-3 flex items-center justify-between px-1">
+              <p className="text-xs font-black tracking-wide text-stone-500">🏆 المتصدرون</p>
+              {myRank ? (
+                <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-stone-500">
+                  مركزك {myRank} من {players.length}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-stone-100 bg-white/70 p-2.5 shadow-soft backdrop-blur">
+              <Leaderboard
+                players={players}
+                meId={playerId}
+                highlightId={state?.buzzedPlayerId}
+                deltaById={deltaById}
+                compact
+              />
+            </div>
+          </motion.div>
+        )}
+
+        {/* الجرس */}
+        {showBuzzer && (
+          <div className="relative flex items-center justify-center">
+            {canBuzz && (
+              <>
+                <span className={cx('pointer-events-none absolute h-[min(74vw,320px)] w-[min(74vw,320px)] animate-halo rounded-full border-2', tone.border)} />
+                <span
+                  className={cx('pointer-events-none absolute h-[min(74vw,320px)] w-[min(74vw,320px)] animate-halo rounded-full border', tone.border)}
+                  style={{ animationDelay: '0.6s' }}
+                />
+              </>
+            )}
+
+            <motion.button
+              type="button"
+              onPointerDown={handleBuzz}
+              disabled={!canBuzz}
+              animate={canBuzz ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+              transition={canBuzz ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+              whileTap={canBuzz ? { scale: 0.95 } : {}}
+              className={cx(
+                'relative flex h-[min(74vw,320px)] w-[min(74vw,320px)] flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200',
+                buzzer.bg,
+                canBuzz ? 'shadow-soft-lg' : 'shadow-soft-inner'
+              )}
+            >
+              <span className="text-5xl sm:text-6xl">{buzzer.emoji}</span>
+              <span className="font-display text-2xl font-black sm:text-3xl">{buzzer.label}</span>
+              <span className="text-xs font-bold opacity-70">{buzzer.hint}</span>
+            </motion.button>
+          </div>
+        )}
+
+        {!showBuzzer && phase === 'lobby' && (
+          <Pill tone="neutral">بانتظار المضيف</Pill>
+        )}
+      </main>
+
+      {/* ============ التذييل ============ */}
+      <footer className="relative z-10 px-5 pb-6 pt-2 text-center safe-bottom">
+        <p className="text-[11px] font-bold text-stone-400">
+          {phase === 'question' && state?.timerRunning && !state?.buzzedPlayerId && !iLockedOut
+            ? 'أسرع بالضغط قبل أن يسبقك أحد!'
+            : 'النقاط = الثواني المتبقية عند الضغط'}
+        </p>
+      </footer>
+
+      {/* ============ إشعار ============ */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            className={cx(
+              'fixed inset-x-4 bottom-6 z-50 mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-sm font-black shadow-soft-md',
+              toast.tone === 'honey' && 'bg-honey-200 text-honey-800',
+              toast.tone === 'sage' && 'bg-sage-200 text-sage-800',
+              toast.tone === 'coral' && 'bg-coral-200 text-coral-800',
+              toast.tone === 'sky' && 'bg-sky-200 text-sky-800',
+              toast.tone === 'neutral' && 'bg-white text-stone-700'
+            )}
+          >
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ استبدال الجلسة ============ */}
+      <AnimatePresence>
+        {replaced && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-cream/90 px-6 backdrop-blur"
+          >
+            <Card className="w-full max-w-sm p-6 text-center">
+              <span className="mb-3 inline-block text-4xl">📱</span>
+              <p className="font-display text-xl font-black text-stone-800">تم الدخول من جهاز آخر</p>
+              <p className="mt-2 text-sm text-stone-500">
+                هذا الاسم أصبح مستخدماً على جهاز آخر. يمكنك استعادة الجلسة هنا.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <SoftButton
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    setReplaced(false);
+                    socket.emit('player:identify', { playerId }, () => {});
+                  }}
+                >
+                  استعادة الجلسة
+                </SoftButton>
+                <SoftButton variant="ghost" size="lg" onClick={onExit}>
+                  العودة للبداية
+                </SoftButton>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
