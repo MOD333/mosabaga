@@ -16,10 +16,13 @@ export default function Leaderboard({ players = [], highlightId = null, meId = n
     );
   }
 
+  // ترتيب تنازلي حسب النقاط — نسخة جديدة (shallow copy) حتى لا نعدّل المصفوفة الأصلية
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+
   return (
     <div className="flex flex-col gap-2">
       <AnimatePresence initial={false}>
-        {players.map((player, index) => {
+        {sortedPlayers.map((player, index) => {
           const tone = toneOf(player.tone);
           const isHighlight = highlightId === player.id;
           const isMe = meId === player.id;

@@ -168,12 +168,17 @@ export default function PlayerView({ playerId, onExit }) {
 
   /* ---------------------- قيم مشتقة ---------------------- */
   const players = state?.players || [];
+  // ترتيب تنازلي حسب النقاط — نسخة جديدة حتى لا نعدّل الحالة الأصلية
+  const sortedPlayers = useMemo(
+    () => [...players].sort((a, b) => b.score - a.score),
+    [players]
+  );
   const me = useMemo(() => players.find((item) => item.id === playerId) || null, [players, playerId]);
   const myScore = me?.score ?? 0;
   const myRank = useMemo(() => {
-    const index = players.findIndex((item) => item.id === playerId);
+    const index = sortedPlayers.findIndex((item) => item.id === playerId);
     return index === -1 ? null : index + 1;
-  }, [players, playerId]);
+  }, [sortedPlayers, playerId]);
 
   const phase = state?.phase || 'lobby';
   const iBuzzed = state?.buzzedPlayerId === playerId;
@@ -321,7 +326,7 @@ export default function PlayerView({ playerId, onExit }) {
             مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
           </p>
           <div className="mt-5 space-y-1.5">
-            {players.slice(0, 4).map((item, index) => (
+            {sortedPlayers.slice(0, 4).map((item, index) => (
               <div
                 key={item.id}
                 className={cx(
