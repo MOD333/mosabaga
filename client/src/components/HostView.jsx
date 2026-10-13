@@ -510,9 +510,21 @@ export default function HostView({ onExit }) {
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     className="flex w-full flex-col items-center gap-3"
                   >
-                    <p className="text-center font-display text-2xl font-black leading-relaxed text-stone-800 sm:text-4xl">
-                      {question.question}
-                    </p>
+                    {question.category && (
+                      <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-4">
+                        {question.category}
+                      </div>
+                    )}
+
+                    {question.type === 'emoji' ? (
+                      <div className="text-[5rem] leading-tight md:text-8xl text-center tracking-widest">
+                        {question.question}
+                      </div>
+                    ) : (
+                      <p className="text-center font-display text-2xl font-black leading-relaxed text-stone-800 sm:text-4xl">
+                        {question.question}
+                      </p>
+                    )}
 
                     {question.type === 'image' && (
                       <img
