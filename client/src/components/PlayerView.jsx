@@ -462,7 +462,7 @@ export default function PlayerView({ playerId, onExit }) {
           initial={{ opacity: 0, scale: 0.94, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-2xl"
+          className="w-full max-w-3xl rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-xl md:p-12"
         >
           <motion.span
             initial={{ scale: 0.5, opacity: 0 }}
@@ -498,7 +498,7 @@ export default function PlayerView({ playerId, onExit }) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-6 text-center shadow-2xl"
+          className="w-full max-w-3xl rounded-3xl border border-amber-200 bg-white p-6 text-center shadow-xl md:p-10"
         >
           <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-4">
             {state.question.category}
@@ -523,7 +523,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'lobby') {
       return (
-        <Card className="w-full max-w-sm p-6 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <span className="mb-3 inline-block text-4xl animate-bob">🎮</span>
           <p className="font-display text-xl font-black text-stone-800">أنت داخل المسابقة</p>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
@@ -535,7 +535,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'finished') {
       return (
-        <Card className="w-full max-w-sm p-6 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <span className="mb-3 inline-block text-5xl">
             {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
           </span>
@@ -568,7 +568,7 @@ export default function PlayerView({ playerId, onExit }) {
     if (phase === 'reveal') {
       const isWinner = state?.lastAward?.playerId === playerId;
       return (
-        <Card className="w-full max-w-sm p-6 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <span className="mb-3 inline-block text-5xl">{isWinner ? '🏆' : '📖'}</span>
           <p className={cx('font-display text-2xl font-black', isWinner ? 'text-sage-600' : 'text-stone-700')}>
             {isWinner ? `إجابة صحيحة! +${state.lastAward.points}` : 'جاهز للسؤال التالي'}
@@ -585,7 +585,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'timeup') {
       return (
-        <Card className="w-full max-w-sm p-6 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <span className="mb-3 inline-block text-5xl">⌛</span>
           <p className="font-display text-2xl font-black text-stone-700">انتهى الوقت!</p>
           {!answerShownToAll && state?.question && (
@@ -601,7 +601,7 @@ export default function PlayerView({ playerId, onExit }) {
     // أثناء السؤال
     if (!state?.isQuestionRevealed) {
       return (
-        <Card className="w-full max-w-sm p-6 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <span className="mb-3 inline-block text-5xl animate-bob">⏳</span>
           <p className="font-display text-2xl font-black text-stone-700">استعد للسؤال القادم…</p>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
@@ -622,7 +622,7 @@ export default function PlayerView({ playerId, onExit }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 430, damping: 20 }}
             className={cx(
-              'w-full max-w-sm rounded-3xl border p-6 text-center shadow-soft-lg',
+              'w-full max-w-2xl rounded-3xl border p-6 text-center shadow-soft-lg md:p-8',
               danger ? 'border-coral-300 bg-coral-50' : 'border-sage-200 bg-sage-50'
             )}
           >
@@ -641,7 +641,7 @@ export default function PlayerView({ playerId, onExit }) {
       }
 
       return (
-        <Card className="w-full max-w-sm border-sage-200 bg-sage-50 p-5 text-center">
+        <Card className="w-full max-w-2xl border-sage-200 bg-sage-50 p-6 text-center md:p-8">
           <p className="font-display text-2xl font-black text-sage-700">🎤 أنت الأول!</p>
           <p className="mt-1.5 text-sm text-sage-600">
             جاوب بصوت عالٍ — نقاطك = الثواني المتبقية
@@ -652,7 +652,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (iLockedOut) {
       return (
-        <Card className="w-full max-w-sm border-coral-200 bg-coral-50 p-5 text-center">
+        <Card className="w-full max-w-2xl border-coral-200 bg-coral-50 p-6 text-center md:p-8">
           <p className="font-display text-xl font-black text-coral-700">✖ خارج هذه الجولة</p>
           <p className="mt-1.5 text-sm text-coral-600">أجاب غيرك بشكل صحيح أو خرجت بخطأ.</p>
         </Card>
@@ -661,7 +661,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (someoneElseBuzzed || phase === 'buzzed') {
       return (
-        <Card className="w-full max-w-sm p-5 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <p className="font-display text-xl font-black text-stone-700">
             🔒 {otherBuzzer ? otherBuzzer.name : 'أحدهم'} ضغط أولاً
           </p>
@@ -672,7 +672,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (state?.timerRunning) {
       return (
-        <Card className="w-full max-w-sm p-5 text-center">
+        <Card className="w-full max-w-2xl p-6 text-center md:p-8">
           <p className={cx('font-display text-3xl font-black', isDanger ? 'text-coral-500' : 'text-stone-800')}>
             اضغط الآن!
           </p>
@@ -684,7 +684,7 @@ export default function PlayerView({ playerId, onExit }) {
     }
 
     return (
-      <Card className="w-full max-w-sm p-5 text-center">
+      <Card className="w-full max-w-2xl p-6 text-center md:p-8">
         <p className="font-display text-2xl font-black text-stone-300">استعد…</p>
         <p className="mt-1.5 text-sm text-stone-500">اقرأ السؤال على الشاشة، الجرس سيعمل قريباً.</p>
       </Card>
@@ -695,21 +695,21 @@ export default function PlayerView({ playerId, onExit }) {
   return (
     <motion.div
       animate={shake}
-      className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-cream bg-glow safe-top"
+      className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-cream bg-gradient-to-b from-honey-50 via-cream to-sage-50 bg-glow safe-top"
     >
       <div className="pointer-events-none absolute inset-0 bg-dots opacity-40" />
 
       {/* ============ الشريط العلوي ============ */}
       <header className="relative z-10 px-4 pt-4">
-        <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-2xl bg-white/80 px-3 py-2.5 shadow-soft backdrop-blur">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-4 rounded-3xl border border-white/40 bg-white/80 px-5 py-4 shadow-sm backdrop-blur-md">
           <Avatar player={player} size="md" />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-base font-black text-stone-800">{player?.name}</p>
+            <p className="truncate font-display text-lg font-black text-stone-800 md:text-xl">{player?.name}</p>
             <ConnectionDot connected={connected} />
           </div>
 
-          <div className={cx('rounded-2xl px-3 py-1.5 text-center', tone.soft)}>
+          <div className={cx('rounded-2xl px-4 py-2 text-center', tone.soft)}>
             <p className="text-[10px] font-bold text-stone-400">نقاطي</p>
             <div className="flex items-baseline justify-center gap-1">
               <motion.p
@@ -717,7 +717,7 @@ export default function PlayerView({ playerId, onExit }) {
                 initial={{ scale: 1.3 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-                className={cx('font-display text-xl font-black leading-none tabular-nums', tone.text)}
+                className={cx('font-display text-2xl font-black leading-none tabular-nums md:text-3xl', tone.text)}
               >
                 {myScore}
               </motion.p>
@@ -740,7 +740,7 @@ export default function PlayerView({ playerId, onExit }) {
             type="button"
             onClick={onExit}
             title="خروج"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-sm text-stone-500 transition-colors hover:bg-stone-200"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100 text-base text-stone-500 transition-colors hover:bg-stone-200"
           >
             ✕
           </button>
@@ -748,14 +748,14 @@ export default function PlayerView({ playerId, onExit }) {
       </header>
 
       {/* ============ المحتوى ============ */}
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto scroll-soft px-5 py-4">
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto scroll-soft px-5 py-5 md:px-8 md:py-8">
         {!isIntro && !memoryImagePhase && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
             initial={{ opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-            className="w-full max-w-lg rounded-3xl border border-stone-100 bg-white p-8 text-center shadow-2xl"
+            className="w-full max-w-3xl rounded-3xl border border-stone-100 bg-white p-8 text-center shadow-xl transition-all duration-500 hover:shadow-2xl md:p-12"
           >
             {state.question.category ? (
               <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-4">
@@ -766,11 +766,11 @@ export default function PlayerView({ playerId, onExit }) {
             )}
 
             {state.question.type === 'emoji' ? (
-              <div className="text-[5rem] leading-tight md:text-8xl text-center tracking-widest">
+              <div className="text-center text-[5.5rem] leading-tight tracking-widest md:text-9xl">
                 {state.question.question}
               </div>
             ) : (
-              <p className="font-display font-black text-2xl leading-relaxed text-stone-900 text-balance md:text-3xl">
+              <p className="font-display text-3xl font-black leading-relaxed text-stone-900 text-balance md:text-5xl">
                 {state.question.question}
               </p>
             )}
@@ -778,7 +778,7 @@ export default function PlayerView({ playerId, onExit }) {
             {state.question.type === 'image' && (
               <img
                 src={state.question.mediaUrl}
-                className="w-full max-h-[50vh] md:max-h-96 object-contain rounded-xl mb-4 shadow-sm"
+                className="mb-4 max-h-[50vh] w-full rounded-2xl object-contain shadow-sm md:max-h-[28rem]"
                 alt="Puzzle"
               />
             )}
@@ -792,7 +792,7 @@ export default function PlayerView({ playerId, onExit }) {
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className="w-full max-w-lg rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-soft-lg"
+            className="w-full max-w-3xl rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-soft-lg"
           >
             <p className="text-[11px] font-black tracking-[0.3em] text-emerald-600">الإجابة الصحيحة</p>
             <p className="mt-2 font-display text-3xl font-black leading-relaxed text-stone-800">
@@ -817,7 +817,7 @@ export default function PlayerView({ playerId, onExit }) {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full max-w-md"
+            className="w-full max-w-3xl"
           >
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-xs font-black tracking-wide text-stone-500">🏆 المتصدرون</p>
@@ -828,7 +828,7 @@ export default function PlayerView({ playerId, onExit }) {
               ) : null}
             </div>
 
-            <div className="rounded-2xl border border-stone-100 bg-white/70 p-2.5 shadow-soft backdrop-blur">
+            <div className="rounded-3xl border border-stone-100 bg-white/70 p-3 shadow-soft backdrop-blur md:p-4">
               <Leaderboard
                 players={players}
                 meId={playerId}
@@ -842,12 +842,13 @@ export default function PlayerView({ playerId, onExit }) {
 
         {/* الجرس */}
         {showBuzzer && (
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex items-center justify-center py-2">
             {canBuzz && (
               <>
-                <span className={cx('pointer-events-none absolute h-[min(74vw,320px)] w-[min(74vw,320px)] animate-halo rounded-full border-2', tone.border)} />
+                <span className="pointer-events-none absolute h-48 w-48 animate-pulse rounded-full bg-honey-400/40 blur-2xl md:h-64 md:w-64" />
+                <span className={cx('pointer-events-none absolute h-48 w-48 animate-halo rounded-full border-2 md:h-64 md:w-64', tone.border)} />
                 <span
-                  className={cx('pointer-events-none absolute h-[min(74vw,320px)] w-[min(74vw,320px)] animate-halo rounded-full border', tone.border)}
+                  className={cx('pointer-events-none absolute h-48 w-48 animate-halo rounded-full border md:h-64 md:w-64', tone.border)}
                   style={{ animationDelay: '0.6s' }}
                 />
               </>
@@ -859,16 +860,21 @@ export default function PlayerView({ playerId, onExit }) {
               disabled={!canBuzz}
               animate={canBuzz ? { scale: [1, 1.03, 1] } : { scale: 1 }}
               transition={canBuzz ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-              whileTap={canBuzz ? { scale: 0.95 } : {}}
+              whileTap={canBuzz ? { scale: 0.9 } : {}}
               className={cx(
-                'relative flex h-[min(74vw,320px)] w-[min(74vw,320px)] flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200',
+                'relative flex h-48 w-48 flex-col items-center justify-center gap-2 rounded-full border-4 transition-colors duration-200 active:scale-90 md:h-64 md:w-64',
                 buzzer.bg,
-                canBuzz ? 'shadow-soft-lg' : 'shadow-soft-inner'
+                canBuzz
+                  ? 'border-honey-500/50 shadow-[0_0_40px_rgba(237,193,103,0.55)]'
+                  : 'border-stone-200/70 shadow-soft-inner'
               )}
             >
-              <span className="text-5xl sm:text-6xl">{buzzer.emoji}</span>
-              <span className="font-display text-2xl font-black sm:text-3xl">{buzzer.label}</span>
-              <span className="text-xs font-bold opacity-70">{buzzer.hint}</span>
+              {/* طبقة تدرّج ناعمة تُضيف عمقاً ولمعاناً على أي لون أساسي */}
+              <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/50 via-white/5 to-black/10" />
+
+              <span className="relative text-6xl drop-shadow-sm md:text-7xl">{buzzer.emoji}</span>
+              <span className="relative font-display text-3xl font-black md:text-4xl">{buzzer.label}</span>
+              <span className="relative text-sm font-bold opacity-70">{buzzer.hint}</span>
             </motion.button>
           </div>
         )}
