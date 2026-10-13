@@ -233,28 +233,31 @@ export default function HostView({ onExit }) {
     sound.unlock();
   }, []);
 
-  const revealQuestion = useCallback(() => {
+  /* ---------- معالجات أزرار اللاعبين ----------
+     دوال مرفوعة (hoisted function declarations) بدل const arrow functions
+     حتى لا يمكن الرجوع إليها قبل تهيئتها (Temporal Dead Zone) بأي حال. */
+  function revealQuestion() {
     socket.emit('reveal_question');
     sound.unlock();
-  }, []);
+  }
 
-  const hardReset = useCallback(() => {
+  function hardReset() {
     if (window.confirm('هل أنت متأكد من تصفير اللعبة ومسح جميع النقاط؟')) {
       socket.emit('hard_reset');
     }
-  }, []);
+  }
 
-  const adjustScore = useCallback((playerId, delta) => {
+  function adjustScore(playerId, delta) {
     socket.emit('manual_score_update', { playerId, delta });
-  }, []);
+  }
 
-  const openWarnings = useCallback(() => {
+  function openWarnings() {
     setWarnTarget(null);
     setWarnReason('');
     setWarnOpen(true);
-  }, []);
+  }
 
-  const sendWarning = useCallback(() => {
+  function sendWarning() {
     const reason = warnReason.trim();
     if (!warnTarget || !reason) return;
     setWarnSending(true);
@@ -273,7 +276,7 @@ export default function HostView({ onExit }) {
         pushToast({ tone: 'coral', title: 'تعذّر إرسال الإنذار', body: response?.error || '' });
       }
     });
-  }, [warnReason, warnTarget, pushToast]);
+  }
 
   /* ---------------------- اختصارات الكيبورد ---------------------- */
   useEffect(() => {
