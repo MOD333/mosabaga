@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import Landing from './components/Landing.jsx';
+import RulesScreen from './components/RulesScreen.jsx';
 import PlayerView from './components/PlayerView.jsx';
 import HostView from './components/HostView.jsx';
+import { playerById } from './data/players.js';
 import { socket, SERVER_URL, connectionInfo, retryConnection } from './socket.js';
 
 const PLAYER_KEY = 'mosabaga:player';
+const AGREED_KEY = 'mosabaga:agreed';
 
 function normalizePath(pathname) {
   return String(pathname || '/').replace(/\/+$/, '') || '/';
@@ -13,6 +16,15 @@ function normalizePath(pathname) {
 function readStoredPlayer() {
   try {
     return localStorage.getItem(PLAYER_KEY) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** أي لاعب وافق على القوانين (نخزّن معرّفه) */
+function readAgreed() {
+  try {
+    return localStorage.getItem(AGREED_KEY) || null;
   } catch (_) {
     return null;
   }
@@ -27,6 +39,7 @@ function readStoredPlayer() {
 export default function App() {
   const [path, setPath] = useState(() => normalizePath(window.location.pathname));
   const [playerId, setPlayerId] = useState(readStoredPlayer);
+  const [agreed, setAgreed] = useState(readAgreed);
 
   const [conn, setConn] = useState(() => ({
     connected: socket.connected,
@@ -180,6 +193,27 @@ export default function App() {
   }
 
   if (path === '/play' && playerId) {
+    // بوابة القوانين — إلزامية قبل دخول غرفة الانتظار
+    if (agreed !== playerId) {
+      return (
+        <>
+          <RulesScreen
+            playerName={playerById(playerId)?.name}
+            onAgree={() => {
+              try {
+                localStorage.setItem(AGREED_KEY, playerId);
+              } catch (_) {
+                /* لا شيء */
+              }
+              setAgreed(playerId);
+            }}
+            onBack={exitPlayer}
+          />
+          {connectionBanner}
+        </>
+      );
+    }
+
     return (
       <>
         <PlayerView playerId={playerId} onExit={exitPlayer} />
