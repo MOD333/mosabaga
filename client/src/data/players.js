@@ -9,7 +9,10 @@ export const PLAYERS = [
   { id: 'abdullah-faiz', name: 'عبدالله فايز', emoji: '🐚', tone: 'sky' },
 ];
 
-export const playerById = (id) => PLAYERS.find((player) => player.id === id) || null;
+/** دالة مرفوعة (hoisted) — آمنة من TDZ عند الاستيراد من أي وحدة */
+export function playerById(id) {
+  return PLAYERS.find((player) => player.id === id) || null;
+}
 
 /** ألوان البستيل لكل لاعب (كلاسات ثابتة حتى يلتقطها Tailwind) */
 export const TONE = {
@@ -55,4 +58,7 @@ export const TONE = {
   },
 };
 
-export const toneOf = (tone) => TONE[tone] || TONE.honey;
+/** دالة مرفوعة (hoisted) — آمنة من TDZ عند الاستيراد من أي وحدة */
+export function toneOf(tone) {
+  return TONE[tone] || TONE.honey;
+}
