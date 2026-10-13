@@ -52,6 +52,9 @@ const game = {
   answerWindow: { active: false, endAt: 0 },
   answerExpired: false,
   answerExpiredPlayerId: null,
+  // نظام الإنذارات
+  warningCounts: Object.fromEntries(PLAYERS.map((player) => [player.id, 0])),
+  activeWarnings: {}, // playerId -> { id, reason, at }
 };
 
 // ----------------------------- اللاعبون المتصلون (بث فوري) -----------------------------
@@ -195,6 +198,8 @@ function buildState() {
     claimed: Boolean(game.claims[player.id]),
     lockedOut: game.lockedOut.has(player.id),
     buzzed: game.buzzedPlayerId === player.id,
+    warnings: game.warningCounts[player.id] || 0,
+    awaitingWarning: Boolean(game.activeWarnings[player.id]),
   }));
 
   // الفائز (يُحسب فقط عند نهاية المسابقة) — يُستخدم في شاشة الفوز
@@ -312,9 +317,11 @@ function withHost(socket, fn) {
   }
 }
 
-/** تصفير شامل: النقاط + السؤال + الأزرار */
+/** تصفير شامل: النقاط + السؤال + الأزرار + الإنذارات */
 function hardResetGame() {
   for (const playerId of PLAYER_IDS) game.scores[playerId] = 0;
+  for (const playerId of PLAYER_IDS) game.warningCounts[playerId] = 0;
+  game.activeWarnings = {};
   loadQuestion(0); // يعيد كل شيء: المؤقت، القفل، الاستبعاد، وإخفاء السؤال
 }
 
@@ -412,6 +419,17 @@ io.on('connection', (socket) => {
     registerConnectedPlayer(playerId, socket.id);
 
     respond(ack, { ok: true, playerId, name: nameOf(playerId), state: buildState() });
+
+    // إعادة إرسال إنذار فعّال (مثلاً بعد تحديث الصفحة)
+    if (game.activeWarnings[playerId]) {
+      socket.emit('warning', {
+        ...game.activeWarnings[playerId],
+        playerId,
+        playerName: nameOf(playerId),
+        count: game.warningCounts[playerId] || 0,
+      });
+    }
+
     io.emit('player:joined', { playerId, name: nameOf(playerId) });
 
     io.emit('update_players', connectedPlayersList());
@@ -748,6 +766,53 @@ io.on('connection', (socket) => {
       startAnswerWindow();
       broadcastState();
     });
+  });
+
+  /* ---------- نظام الإنذارات ---------- */
+
+  // المضيف يرسل إنذاراً للاعب مع السبب
+  socket.on('host:sendWarning', (payload, ack) => {
+    withHost(socket, () => {
+      const playerId = String(payload?.playerId || '');
+      const reason = String(payload?.reason || '').trim().slice(0, 180);
+
+      if (!isPlayerId(playerId)) return respond(ack, { ok: false, error: 'لاعب غير معروف' });
+      if (!reason) return respond(ack, { ok: false, error: 'اكتب سبب الإنذار أولاً' });
+
+      game.warningCounts[playerId] = (game.warningCounts[playerId] || 0) + 1;
+      const warning = {
+        id: `w-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        reason,
+        at: Date.now(),
+      };
+      game.activeWarnings[playerId] = warning;
+
+      // يُرسل لجهاز اللاعب المعني فقط
+      const targetSocketId = game.claims[playerId];
+      const targetSocket = targetSocketId ? io.sockets.sockets.get(targetSocketId) : null;
+      if (targetSocket) {
+        targetSocket.emit('warning', {
+          ...warning,
+          playerId,
+          playerName: nameOf(playerId),
+          count: game.warningCounts[playerId],
+        });
+      }
+
+      respond(ack, { ok: true, count: game.warningCounts[playerId] });
+      broadcastState();
+    });
+  });
+
+  // اللاعب يؤكّد استلام الإنذار (بعد الاستمرار على المسافة ٥ ثوانٍ)
+  socket.on('warning:acknowledge', (_payload, ack) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) return respond(ack, { ok: false });
+    if (game.activeWarnings[playerId]) {
+      delete game.activeWarnings[playerId];
+      broadcastState();
+    }
+    respond(ack, { ok: true });
   });
 
   // ==================== قطع الاتصال ====================

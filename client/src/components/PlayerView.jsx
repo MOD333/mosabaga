@@ -9,6 +9,9 @@ import VictoryScreen from './VictoryScreen.jsx';
 import { playerById, toneOf } from '../data/players.js';
 import { TIMER_DURATION } from '../data/gameData.js';
 
+/** مدة الاستمرار على المسافة لإغلاق الإنذار */
+const HOLD_MS = 5000;
+
 /**
  * واجهة اللاعب — زر الجرس الكبير + النقاط.
  */
@@ -29,6 +32,10 @@ export default function PlayerView({ playerId, onExit }) {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   // مهلة الإجابة (٣ ثوانٍ)
   const [answerRemaining, setAnswerRemaining] = useState(0);
+  // نظام الإنذارات
+  const [warning, setWarning] = useState(null);
+  const [holdPct, setHoldPct] = useState(0);
+  const holdRef = useRef({ active: false, start: 0, timer: 0 });
 
   const buzzLock = useRef(false);
   const shake = useAnimation();
@@ -40,6 +47,58 @@ export default function PlayerView({ playerId, onExit }) {
     window.setTimeout(() => {
       setToast((current) => (current && current.id === next.id ? null : current));
     }, 2400);
+  }, []);
+
+  /* ---------------------- الإنذارات (اضغط مطوّلاً ٥ ثوانٍ) ---------------------- */
+
+  const playAlert = useCallback(() => {
+    try {
+      const audio = new Audio('/sounds/alert.mp3');
+      audio.volume = 0.75;
+      const attempt = audio.play();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch(() => {
+          const wav = new Audio('/sounds/alert.wav');
+          wav.volume = 0.75;
+          const retry = wav.play();
+          if (retry && typeof retry.catch === 'function') retry.catch(() => sound.wrong());
+        });
+      }
+    } catch (_) {
+      sound.wrong();
+    }
+  }, []);
+
+  const endHold = useCallback(() => {
+    holdRef.current.active = false;
+    if (holdRef.current.timer) clearInterval(holdRef.current.timer);
+    holdRef.current.timer = 0;
+    setHoldPct(0); // الإفلات قبل ٥ ثوانٍ = العودة للصفر فوراً
+  }, []);
+
+  const beginHold = useCallback(() => {
+    if (holdRef.current.active) return;
+    holdRef.current.active = true;
+    holdRef.current.start = performance.now();
+
+    // نعتمد على الوقت الفعلي (performance.now) لذا يبقى التقدّم صحيحاً
+    // حتى لو أخّر المتصفح المؤقّت (تبويب في الخلفية مثلاً).
+    holdRef.current.timer = window.setInterval(() => {
+      if (!holdRef.current.active) return;
+
+      const elapsed = performance.now() - holdRef.current.start;
+      const pct = Math.min(100, (elapsed / HOLD_MS) * 100);
+      setHoldPct(pct);
+
+      if (pct >= 100) {
+        holdRef.current.active = false;
+        clearInterval(holdRef.current.timer);
+        holdRef.current.timer = 0;
+        setHoldPct(0);
+        setWarning(null);
+        socket.emit('warning:acknowledge', {});
+      }
+    }, 16);
   }, []);
 
   /* ---------------------- تعريف الهوية ---------------------- */
@@ -141,6 +200,14 @@ export default function PlayerView({ playerId, onExit }) {
       notify('تم تصفير اللعبة بالكامل', 'coral');
     };
 
+    // إنذار من المضيف
+    const onWarning = (payload) => {
+      setHoldPct(0);
+      setWarning(payload);
+      playAlert();
+      vibrate([90, 60, 90, 60, 90]);
+    };
+
     socket.on('game:state', onState);
     socket.on('timer:tick', onTick);
     socket.on('timer:started', onStarted);
@@ -156,6 +223,7 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('game:hard_reset', onHardReset);
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
+    socket.on('warning', onWarning);
 
     return () => {
       socket.off('game:state', onState);
@@ -173,8 +241,9 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('game:hard_reset', onHardReset);
       socket.off('answer:tick', onAnswerTick);
       socket.off('answer:started', onAnswerStarted);
+      socket.off('warning', onWarning);
     };
-  }, [playerId, notify, shake]);
+  }, [playerId, notify, shake, playAlert]);
 
   /* ---------------------- قيم مشتقة ---------------------- */
   const players = state?.players || [];
@@ -285,6 +354,7 @@ export default function PlayerView({ playerId, onExit }) {
 
   useEffect(() => {
     const onKey = (event) => {
+      if (warning) return; // الإنذار فعّال: المسافة مخصّصة لإغلاقه
       if (event.code === 'Space' && event.target?.tagName !== 'INPUT') {
         event.preventDefault();
         handleBuzz();
@@ -292,7 +362,37 @@ export default function PlayerView({ playerId, onExit }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleBuzz]);
+  }, [handleBuzz, warning]);
+
+  /* الاستمرار على المسافة ٥ ثوانٍ لإغلاق الإنذار */
+  useEffect(() => {
+    if (!warning) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.code !== 'Space') return;
+      event.preventDefault();
+      if (event.repeat) return; // نتجاهل التكرار التلقائي للمفتاح
+      beginHold();
+    };
+
+    const onKeyUp = (event) => {
+      if (event.code !== 'Space') return;
+      event.preventDefault();
+      endHold();
+    };
+
+    const onBlur = () => endHold();
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+      endHold();
+    };
+  }, [warning, beginHold, endHold]);
 
   /* ---------------------- شكل الجرس ---------------------- */
   const buzzer = useMemo(() => {
@@ -758,6 +858,99 @@ export default function PlayerView({ playerId, onExit }) {
                 transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
               />
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ إنذار من المضيف (اضغط مطوّلاً ٥ ثوانٍ) ============ */}
+      <AnimatePresence>
+        {warning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[85] flex flex-col items-center justify-center bg-gradient-to-b from-coral-500 via-coral-600 to-coral-700 px-6 text-center"
+          >
+            {/* وميض تحذيري */}
+            <motion.span
+              className="pointer-events-none absolute inset-0 border-[6px] border-white/25"
+              animate={{ opacity: [0.15, 0.5, 0.15] }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <motion.span
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: [1, 1.08, 1], opacity: 1 }}
+              transition={{ scale: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }, opacity: { duration: 0.2 } }}
+              className="text-7xl sm:text-8xl"
+            >
+              ⚠️
+            </motion.span>
+
+            <motion.h1
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.08, type: 'spring', stiffness: 260, damping: 18 }}
+              className="mt-3 font-display text-5xl font-black text-white sm:text-6xl"
+            >
+              إنذار!
+            </motion.h1>
+
+            {warning.count > 0 && (
+              <motion.span
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.16 }}
+                className="mt-3 rounded-full bg-white/20 px-4 py-1 text-xs font-black text-white ring-1 ring-white/40"
+              >
+                إنذار رقم {warning.count} — ٣ إنذارات = طرد نهائي
+              </motion.span>
+            )}
+
+            {/* سبب الإنذار */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22, type: 'spring', stiffness: 280, damping: 24 }}
+              className="mt-6 w-full max-w-sm rounded-3xl bg-white/15 px-5 py-4 ring-1 ring-white/30 backdrop-blur-sm"
+            >
+              <p className="text-[11px] font-black tracking-[0.25em] text-white/70">السبب من المضيف</p>
+              <p className="mt-2 text-lg font-black leading-relaxed text-white">{warning.reason}</p>
+            </motion.div>
+
+            {/* شريط تقدّم الاستمرار */}
+            <div className="mt-8 w-full max-w-sm">
+              <div className="h-3.5 w-full overflow-hidden rounded-full bg-white/25 ring-1 ring-white/30">
+                <div
+                  className="h-full rounded-full bg-white"
+                  style={{ width: `${holdPct}%` }}
+                />
+              </div>
+              <p className="mt-2.5 text-center text-xs font-black text-white/85">
+                {holdPct >= 100
+                  ? 'تم الإغلاق'
+                  : holdPct > 0
+                    ? `استمر… ${(5 - (holdPct / 100) * 5).toFixed(1)} ث`
+                    : 'اضغط مع الاستمرار على مفتاح المسافة ٥ ثوانٍ للإغلاق'}
+              </p>
+            </div>
+
+            {/* بديل للجوال: اضغط مع الاستمرار هنا */}
+            <button
+              type="button"
+              onPointerDown={(event) => {
+                event.preventDefault();
+                beginHold();
+              }}
+              onPointerUp={endHold}
+              onPointerUpCapture={endHold}
+              onPointerLeave={endHold}
+              onPointerCancel={endHold}
+              className="mt-5 select-none rounded-2xl bg-white/15 px-6 py-3.5 text-sm font-black text-white ring-1 ring-white/40 transition-colors hover:bg-white/25 active:bg-white/35"
+            >
+              📱 أو اضغط مع الاستمرار هنا ٥ ثوانٍ
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

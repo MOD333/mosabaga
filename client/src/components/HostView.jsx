@@ -13,7 +13,7 @@ import {
   SoftButton,
   cx,
 } from './ui.jsx';
-import { toneOf } from '../data/players.js';
+import { playerById, toneOf } from '../data/players.js';
 import TimerRing from './TimerRing.jsx';
 import Leaderboard from './Leaderboard.jsx';
 import VictoryScreen from './VictoryScreen.jsx';
@@ -35,6 +35,11 @@ export default function HostView({ onExit }) {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   // مهلة الإجابة (٣ ثوانٍ)
   const [answerRemaining, setAnswerRemaining] = useState(0);
+  // نظام الإنذارات
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [warnTarget, setWarnTarget] = useState(null);
+  const [warnReason, setWarnReason] = useState('');
+  const [warnSending, setWarnSending] = useState(false);
 
   const shake = useAnimation();
   const lastSecond = useRef(-1);
@@ -243,6 +248,33 @@ export default function HostView({ onExit }) {
     socket.emit('manual_score_update', { playerId, delta });
   }, []);
 
+  const openWarnings = useCallback(() => {
+    setWarnTarget(null);
+    setWarnReason('');
+    setWarnOpen(true);
+  }, []);
+
+  const sendWarning = useCallback(() => {
+    const reason = warnReason.trim();
+    if (!warnTarget || !reason) return;
+    setWarnSending(true);
+    socket.emit('host:sendWarning', { playerId: warnTarget, reason }, (response) => {
+      setWarnSending(false);
+      if (response?.ok) {
+        pushToast({
+          tone: 'coral',
+          title: '🔔 تم إرسال الإنذار',
+          body: `${playerById(warnTarget)?.name} — إنذار #${response.count}`,
+        });
+        setWarnOpen(false);
+        setWarnTarget(null);
+        setWarnReason('');
+      } else {
+        pushToast({ tone: 'coral', title: 'تعذّر إرسال الإنذار', body: response?.error || '' });
+      }
+    });
+  }, [warnReason, warnTarget, pushToast]);
+
   /* ---------------------- اختصارات الكيبورد ---------------------- */
   useEffect(() => {
     const onKey = (event) => {
@@ -334,6 +366,9 @@ export default function HostView({ onExit }) {
   }, [players]);
 
   const victoryWinner = state?.winner || (phase === 'finished' ? topPlayer : null);
+
+  // اللاعبون المتصلون — لقائمة الإنذارات
+  const warnCandidates = useMemo(() => roster.filter((player) => player.connected), [roster]);
 
   useEffect(() => {
     if (phase !== 'finished') setVictoryDismissed(false);
@@ -652,6 +687,9 @@ export default function HostView({ onExit }) {
                   <div className="mt-5 border-t border-stone-100 pt-4">
                     <SectionLabel className="mb-3">أدوات الجولة</SectionLabel>
                     <div className="flex flex-wrap gap-2.5">
+                      <SoftButton variant="danger" size="md" onClick={openWarnings}>
+                        🔔 الإنذارات
+                      </SoftButton>
                       <SoftButton
                         variant="primary"
                         size="md"
@@ -876,6 +914,110 @@ export default function HostView({ onExit }) {
                     onClick={() => send('host:resetAnswerTime')}
                   >
                     ⟲ إعادة الوقت / إلغاء
+                  </SoftButton>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ نظام الإنذارات ============ */}
+      <AnimatePresence>
+        {warnOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[72] flex items-center justify-center bg-stone-900/45 px-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 22, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+              className="w-full max-w-md"
+            >
+              <Card lg className="p-6">
+                <div className="text-center">
+                  <span className="text-4xl">🔔</span>
+                  <h2 className="mt-2 font-display text-2xl font-black text-stone-800">نظام الإنذارات</h2>
+                  <p className="mt-1 text-xs font-bold text-stone-400">
+                    اختر اللاعب واكتب السبب — ٣ إنذارات = طرد نهائي.
+                  </p>
+                </div>
+
+                {/* قائمة اللاعبين المتصلين */}
+                <div className="mt-5 space-y-2">
+                  {warnCandidates.length === 0 && (
+                    <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-6 text-center text-sm text-stone-400">
+                      لا يوجد لاعبون متصلون حالياً.
+                    </p>
+                  )}
+
+                  {warnCandidates.map((player) => {
+                    const selected = warnTarget === player.id;
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => setWarnTarget(player.id)}
+                        className={cx(
+                          'flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-right transition-colors',
+                          selected ? 'border-coral-400 bg-coral-50' : 'border-stone-100 bg-stone-50/70 hover:bg-stone-100'
+                        )}
+                      >
+                        <Avatar player={player} size="sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-bold text-stone-800">{player.name}</span>
+                          <span className="text-[11px] font-bold text-stone-400">
+                            إنذارات سابقة: <span className={player.warnings > 0 ? 'text-coral-500' : ''}>{player.warnings}</span>
+                          </span>
+                        </span>
+                        <span
+                          className={cx(
+                            'flex h-6 w-6 items-center justify-center rounded-full text-xs font-black',
+                            selected ? 'bg-coral-500 text-white' : 'bg-white text-stone-300 ring-1 ring-stone-200'
+                          )}
+                        >
+                          {selected ? '✓' : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* السبب */}
+                <label className="mt-5 flex flex-col gap-2">
+                  <span className="text-[11px] font-bold text-stone-400">سبب الإنذار</span>
+                  <input
+                    value={warnReason}
+                    onChange={(event) => setWarnReason(event.target.value.slice(0, 180))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && warnTarget && warnReason.trim()) sendWarning();
+                    }}
+                    placeholder="مثال: مقاطعة اللاعبين أثناء السؤال"
+                    className="rounded-2xl border border-stone-200 bg-stone-50/70 px-4 py-3 text-sm font-bold text-stone-800 outline-none transition-colors placeholder:font-normal placeholder:text-stone-400 focus:border-coral-400"
+                  />
+                </label>
+
+                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+                  <SoftButton
+                    variant="danger"
+                    size="lg"
+                    className="flex-1 justify-center"
+                    disabled={!warnTarget || !warnReason.trim() || warnSending}
+                    onClick={sendWarning}
+                  >
+                    {warnSending ? 'جارٍ الإرسال…' : '🔔 إرسال الإنذار'}
+                  </SoftButton>
+                  <SoftButton
+                    variant="ghost"
+                    size="lg"
+                    className="justify-center sm:w-28"
+                    onClick={() => setWarnOpen(false)}
+                  >
+                    إغلاق
                   </SoftButton>
                 </div>
               </Card>
