@@ -485,7 +485,7 @@ export default function PlayerView({ playerId, onExit }) {
           {!answerShownToAll && state?.question && (
             <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
               <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
-              <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
+              <p className="mt-1 font-bold text-stone-800">{state.question.answer}</p>
             </div>
           )}
         </Card>
@@ -500,7 +500,7 @@ export default function PlayerView({ playerId, onExit }) {
           {!answerShownToAll && state?.question && (
             <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
               <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
-              <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
+              <p className="mt-1 font-bold text-stone-800">{state.question.answer}</p>
             </div>
           )}
         </Card>
@@ -670,17 +670,25 @@ export default function PlayerView({ playerId, onExit }) {
             <p
               className={cx(
                 'font-display font-black leading-relaxed text-stone-900 text-balance',
-                'text-3xl md:text-5xl',
-                /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(state.question.q) && 'tracking-[0.12em]'
+                state.question.type === 'image' ? 'text-2xl md:text-3xl' : 'text-3xl md:text-5xl',
+                /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(state.question.question) && 'tracking-[0.12em]'
               )}
             >
-              {state.question.q}
+              {state.question.question}
             </p>
+
+            {state.question.type === 'image' && (
+              <img
+                src={state.question.mediaUrl}
+                className="w-full max-h-[50vh] md:max-h-96 object-contain rounded-xl mb-4 shadow-sm"
+                alt="Puzzle"
+              />
+            )}
           </motion.div>
         )}
 
         {/* الإجابة المكشوفة لجميع اللاعبين */}
-        {answerShownToAll && (state?.question?.a || revealedAnswer) && (
+        {answerShownToAll && (state?.question?.answer || revealedAnswer) && (
           <motion.div
             key={`answer-all-${state?.questionIndex}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
@@ -690,7 +698,7 @@ export default function PlayerView({ playerId, onExit }) {
           >
             <p className="text-[11px] font-black tracking-[0.3em] text-emerald-600">الإجابة الصحيحة</p>
             <p className="mt-2 font-display text-3xl font-black leading-relaxed text-stone-800">
-              {state?.question?.a || revealedAnswer}
+              {state?.question?.answer || revealedAnswer}
             </p>
           </motion.div>
         )}

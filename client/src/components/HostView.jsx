@@ -503,27 +503,30 @@ export default function HostView({ onExit }) {
                     </p>
                   </motion.div>
                 ) : question ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <motion.h2
-                      key={state?.questionIndex}
-                      initial={{ opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className={cx(
-                        'text-center font-display font-black leading-relaxed text-stone-800 text-balance',
-                        /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(question.q)
-                          ? 'text-4xl tracking-[0.2em] sm:text-5xl'
-                          : 'text-2xl sm:text-4xl'
-                      )}
-                    >
-                      {question.q}
-                    </motion.h2>
+                  <motion.div
+                    key={state?.questionIndex}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex w-full flex-col items-center gap-3"
+                  >
+                    <p className="text-center font-display text-2xl font-black leading-relaxed text-stone-800 sm:text-4xl">
+                      {question.question}
+                    </p>
+
+                    {question.type === 'image' && (
+                      <img
+                        src={question.mediaUrl}
+                        className="w-full max-h-[50vh] md:max-h-96 object-contain rounded-xl mb-4 shadow-sm"
+                        alt="Puzzle"
+                      />
+                    )}
 
                     {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس */}
                     <p className="rounded-xl bg-emerald-50 px-4 py-1.5 text-center font-bold text-emerald-600">
-                      الإجابة: <span className="font-black">{question.a}</span>
+                      الإجابة: <span className="font-black">{question.answer}</span>
                     </p>
-                  </div>
+                  </motion.div>
                 ) : (
                   <motion.div
                     key="empty"
@@ -575,7 +578,7 @@ export default function HostView({ onExit }) {
                       className="w-full rounded-2xl border border-sage-200 bg-sage-50 px-5 py-4 sm:w-auto sm:min-w-[280px]"
                     >
                       <p className="text-[11px] font-bold text-sage-600">الإجابة الصحيحة</p>
-                      <p className="mt-1 font-display text-xl font-black text-stone-800">{question.a}</p>
+                      <p className="mt-1 font-display text-xl font-black text-stone-800">{question.answer}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

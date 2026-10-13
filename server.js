@@ -36,6 +36,10 @@ const playerMeta = (playerId) => PLAYERS.find((player) => player.id === playerId
 const isPlayerId = (value) => PLAYER_IDS.includes(String(value));
 const nameOf = (playerId) => playerMeta(playerId)?.name ?? '';
 
+/** وسم الفقرة — جميع الأسئلة الحالية في فقرة واحدة */
+const ROUND_LABEL = 'الرابط العجيب';
+const roundOf = (item) => item?.round || ROUND_LABEL;
+
 // ----------------------------- الحالة العالمية -----------------------------
 const game = {
   phase: 'lobby', // lobby | question | buzzed | reveal | timeup | finished
@@ -217,8 +221,8 @@ function buildState() {
     // نص السؤال لا يُرسل أصلاً قبل كشفه (منع أي تسريب للواجهات)
     isQuestionRevealed: game.isQuestionRevealed,
     question: game.isQuestionRevealed ? current : null,
-    hiddenQuestionRound: current ? current.round : null,
-    round: current ? current.round : null,
+    hiddenQuestionRound: current ? roundOf(current) : null,
+    round: current ? roundOf(current) : null,
     timerDuration: TIMER_DURATION,
     remaining: Number(remainingSeconds().toFixed(2)),
     timerRunning: game.timer.running,
@@ -347,7 +351,7 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/questions', (_req, res) => {
   res.json({
     total: TOTAL_QUESTIONS,
-    rounds: [...new Set(gameData.map((item) => item.round))],
+    rounds: [...new Set(gameData.map((item) => roundOf(item)))],
     data: gameData,
   });
 });
@@ -528,7 +532,7 @@ io.on('connection', (socket) => {
       loadQuestion(next);
       io.emit('game:question', {
         index: next,
-        round: gameData[next].round,
+        round: roundOf(gameData[next]),
         total: TOTAL_QUESTIONS,
       });
       broadcastState();
@@ -545,7 +549,7 @@ io.on('connection', (socket) => {
         return;
       }
       loadQuestion(prev);
-      io.emit('game:question', { index: prev, round: gameData[prev].round, total: TOTAL_QUESTIONS });
+      io.emit('game:question', { index: prev, round: roundOf(gameData[prev]), total: TOTAL_QUESTIONS });
       broadcastState();
     });
   });
@@ -555,7 +559,7 @@ io.on('connection', (socket) => {
       const index = Number(payload?.index);
       if (!Number.isInteger(index) || index < 0 || index >= TOTAL_QUESTIONS) return;
       loadQuestion(index);
-      io.emit('game:question', { index, round: gameData[index].round, total: TOTAL_QUESTIONS });
+      io.emit('game:question', { index, round: roundOf(gameData[index]), total: TOTAL_QUESTIONS });
       broadcastState();
     });
   });
@@ -565,13 +569,13 @@ io.on('connection', (socket) => {
     withHost(socket, () => {
       const currentRound =
         game.questionIndex >= 0 && game.questionIndex < TOTAL_QUESTIONS
-          ? gameData[game.questionIndex].round
+          ? roundOf(gameData[game.questionIndex])
           : null;
 
       // أول سؤال بعد الحالي تختلف جولته عن الجولة الحالية
       let target = -1;
       for (let i = game.questionIndex + 1; i < TOTAL_QUESTIONS; i += 1) {
-        if (gameData[i].round !== currentRound) {
+        if (roundOf(gameData[i]) !== currentRound) {
           target = i;
           break;
         }
@@ -596,7 +600,7 @@ io.on('connection', (socket) => {
       loadQuestion(target);
       io.emit('game:question', {
         index: target,
-        round: gameData[target].round,
+        round: roundOf(gameData[target]),
         total: TOTAL_QUESTIONS,
         skippedRound: true,
       });
@@ -692,7 +696,7 @@ io.on('connection', (socket) => {
 
       io.emit('reveal_answer_to_all', {
         index: game.questionIndex,
-        answer: gameData[game.questionIndex].a,
+        answer: gameData[game.questionIndex].answer,
       });
       broadcastState();
     });
