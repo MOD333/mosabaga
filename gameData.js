@@ -46,7 +46,20 @@ export const gameData = [
   { category: "ركز زين", type: "memory", mediaUrl: "/media/mem7.jpg", question: "إيش كان لون السيارة اللي ورا الميكانيكي؟", answer: "أحمر", timeLimit: 15 },
   { category: "ركز زين", type: "memory", mediaUrl: "/media/mem8.jpg", question: "ثلاجة الآيسكريم كان لونها أزرق ولا وردي؟", answer: "وردي", timeLimit: 15 },
   { category: "ركز زين", type: "memory", mediaUrl: "/media/mem9.jpg", question: "النتيجة في الشاشة الكبيرة كانت كم كم؟", answer: "2 - 1", timeLimit: 15 },
-  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem10.jpg", question: "الساعة المعلقة على الجدار كانت تأشر على أي وقت؟", answer: "الساعة 3", timeLimit: 15 }
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem10.jpg", question: "الساعة المعلقة على الجدار كانت تأشر على أي وقت؟", answer: "الساعة 3", timeLimit: 15 },
+
+  // ---------- فقرة الكلمة الشاذة (الدخيل) ----------
+  { type: "intro", title: "فقرة الكلمة الشاذة (الدخيل) 🕵️‍♂️", description: "بتطلع لك 4 كلمات، 3 منها بينهم رابط مشترك وواحدة شاذة (دخيلة عليهم). المطلوب تصيد الكلمة الشاذة بأسرع وقت! (لديك 5 ثواني فقط)" },
+  { category: "الكلمة الشاذة", type: "text", question: "كامري، هايلوكس، لاندكروزر، باترول", answer: "باترول (نيسان، الباقي تويوتا)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "الصفا، المروة، أبحر، السويدي", answer: "السويدي (حي بالرياض، الباقي بجدة)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "البيك، كودو، الطازج، كنتاكي", answer: "كنتاكي (أجنبي، الباقي سعودي)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "لوس سانتوس، ساندي شورز، باليتو باي، فايس سيتي", answer: "فايس سيتي (خارج خريطة قراند 5)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "ريدبول، كودرد، بايسن، بيبسي", answer: "بيبسي (مشروب غازي، الباقي طاقة)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "واتساب، تيليجرام، ديسكورد، فوتوشوب", answer: "فوتوشوب (تصميم، الباقي تواصل)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "بلايستيشن، إكس بوكس، نينتندو، آبل", answer: "آبل (ليست كونسول ألعاب)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "بندريتا، أبو فلة، ملهم، أبو الرُّب", answer: "ملهم (محتوى تثقيفي، الباقي ترفيه)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "تويتر، انستقرام، تيك توك، نتفلكس", answer: "نتفلكس (منصة مشاهدة، الباقي تواصل)", timeLimit: 5 },
+  { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 }
 ];
 
 export default gameData;
