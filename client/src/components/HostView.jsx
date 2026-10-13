@@ -503,20 +503,27 @@ export default function HostView({ onExit }) {
                     </p>
                   </motion.div>
                 ) : question ? (
-                  <motion.h2
-                    key={state?.questionIndex}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className={cx(
-                      'text-center font-display font-black leading-relaxed text-stone-800 text-balance',
-                      /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(question.q)
-                        ? 'text-4xl tracking-[0.2em] sm:text-5xl'
-                        : 'text-2xl sm:text-4xl'
-                    )}
-                  >
-                    {question.q}
-                  </motion.h2>
+                  <div className="flex flex-col items-center gap-3">
+                    <motion.h2
+                      key={state?.questionIndex}
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className={cx(
+                        'text-center font-display font-black leading-relaxed text-stone-800 text-balance',
+                        /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(question.q)
+                          ? 'text-4xl tracking-[0.2em] sm:text-5xl'
+                          : 'text-2xl sm:text-4xl'
+                      )}
+                    >
+                      {question.q}
+                    </motion.h2>
+
+                    {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس */}
+                    <p className="rounded-xl bg-emerald-50 px-4 py-1.5 text-center font-bold text-emerald-600">
+                      الإجابة: <span className="font-black">{question.a}</span>
+                    </p>
+                  </div>
                 ) : (
                   <motion.div
                     key="empty"
@@ -792,8 +799,13 @@ export default function HostView({ onExit }) {
 
           <div className="mx-1 hidden h-8 w-px bg-stone-100 sm:block" />
 
-          <SoftButton variant="ghost" size="md" disabled={!canReveal} onClick={() => send('host:revealAnswer')}>
-            {state?.answerRevealed ? 'إخفاء الإجابة' : 'إظهار الإجابة'}
+          <SoftButton
+            variant="ghost"
+            size="md"
+            disabled={!canReveal || Boolean(state?.answerRevealedToAll)}
+            onClick={() => send('reveal_answer_to_all')}
+          >
+            {state?.answerRevealedToAll ? 'الإجابة ظاهرة للجميع ✓' : '👀 إظهار الإجابة للجميع'}
           </SoftButton>
 
           <div className="mr-auto flex items-center gap-2">

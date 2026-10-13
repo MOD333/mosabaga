@@ -32,6 +32,9 @@ export default function PlayerView({ playerId, onExit }) {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   // مهلة الإجابة (٣ ثوانٍ)
   const [answerRemaining, setAnswerRemaining] = useState(0);
+  // كشف الإجابة للجميع
+  const [answerShownToAll, setAnswerShownToAll] = useState(false);
+  const [revealedAnswer, setRevealedAnswer] = useState(null);
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -134,6 +137,15 @@ export default function PlayerView({ playerId, onExit }) {
       setRemaining(next.remaining);
       setOptimistic(false);
       if (!next.answerWindowActive) setAnswerRemaining(0);
+      setAnswerShownToAll(Boolean(next.answerRevealedToAll));
+    };
+
+    // كشف الإجابة للجميع (حتى لو لم يضغط أحد الجرس)
+    const onRevealAnswerToAll = (payload) => {
+      setAnswerShownToAll(true);
+      if (payload?.answer) setRevealedAnswer(payload.answer);
+      sound.correct();
+      notify('تم كشف الإجابة للجميع', 'sage');
     };
 
     const onAnswerTick = (payload) => setAnswerRemaining(payload.remaining);
@@ -224,6 +236,7 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
     socket.on('warning', onWarning);
+    socket.on('reveal_answer_to_all', onRevealAnswerToAll);
 
     return () => {
       socket.off('game:state', onState);
@@ -242,6 +255,7 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('answer:tick', onAnswerTick);
       socket.off('answer:started', onAnswerStarted);
       socket.off('warning', onWarning);
+      socket.off('reveal_answer_to_all', onRevealAnswerToAll);
     };
   }, [playerId, notify, shake, playAlert]);
 
@@ -468,7 +482,7 @@ export default function PlayerView({ playerId, onExit }) {
           <p className={cx('font-display text-2xl font-black', isWinner ? 'text-sage-600' : 'text-stone-700')}>
             {isWinner ? `إجابة صحيحة! +${state.lastAward.points}` : 'جاهز للسؤال التالي'}
           </p>
-          {state?.question && (
+          {!answerShownToAll && state?.question && (
             <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
               <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
               <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
@@ -483,7 +497,7 @@ export default function PlayerView({ playerId, onExit }) {
         <Card className="w-full max-w-sm p-6 text-center">
           <span className="mb-3 inline-block text-5xl">⌛</span>
           <p className="font-display text-2xl font-black text-stone-700">انتهى الوقت!</p>
-          {state?.question && (
+          {!answerShownToAll && state?.question && (
             <div className="mt-4 rounded-2xl bg-stone-50 px-4 py-3">
               <p className="text-[11px] font-bold text-stone-400">الإجابة الصحيحة</p>
               <p className="mt-1 font-bold text-stone-800">{state.question.a}</p>
@@ -661,6 +675,22 @@ export default function PlayerView({ playerId, onExit }) {
               )}
             >
               {state.question.q}
+            </p>
+          </motion.div>
+        )}
+
+        {/* الإجابة المكشوفة لجميع اللاعبين */}
+        {answerShownToAll && (state?.question?.a || revealedAnswer) && (
+          <motion.div
+            key={`answer-all-${state?.questionIndex}`}
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+            className="w-full max-w-lg rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-soft-lg"
+          >
+            <p className="text-[11px] font-black tracking-[0.3em] text-emerald-600">الإجابة الصحيحة</p>
+            <p className="mt-2 font-display text-3xl font-black leading-relaxed text-stone-800">
+              {state?.question?.a || revealedAnswer}
             </p>
           </motion.div>
         )}

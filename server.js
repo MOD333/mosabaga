@@ -52,6 +52,8 @@ const game = {
   answerWindow: { active: false, endAt: 0 },
   answerExpired: false,
   answerExpiredPlayerId: null,
+  // كشف الإجابة لجميع اللاعبين
+  answerRevealedToAll: false,
   // نظام الإنذارات
   warningCounts: Object.fromEntries(PLAYERS.map((player) => [player.id, 0])),
   activeWarnings: {}, // playerId -> { id, reason, at }
@@ -229,6 +231,7 @@ function buildState() {
     buzzedPlayerId: game.buzzedPlayerId,
     buzzedPlayerName: game.buzzedPlayerId ? nameOf(game.buzzedPlayerId) : null,
     answerRevealed: game.answerRevealed,
+    answerRevealedToAll: game.answerRevealedToAll,
     lastAward: game.lastAward,
     winner:
       game.phase === 'finished' && top
@@ -268,6 +271,7 @@ function loadQuestion(index) {
   game.buzzedPlayerId = null;
   game.lockedOut.clear();
   game.answerRevealed = false;
+  game.answerRevealedToAll = false;
   game.lastAward = null;
   game.timer.running = false;
   game.timer.remaining = TIMER_DURATION;
@@ -670,6 +674,26 @@ io.on('connection', (socket) => {
       } else if (game.phase === 'reveal') {
         game.phase = 'question';
       }
+      broadcastState();
+    });
+  });
+
+  // كشف الإجابة لجميع اللاعبين فوراً (حتى لو لم يضغط أحد الجرس)
+  socket.on('reveal_answer_to_all', () => {
+    withHost(socket, () => {
+      if (game.questionIndex < 0 || game.questionIndex >= TOTAL_QUESTIONS) return;
+
+      game.answerRevealedToAll = true;
+      game.answerRevealed = true;
+      game.timer.running = false;
+      game.timer.remaining = remainingSeconds();
+      game.timer.endAt = 0;
+      if (game.phase === 'question' || game.phase === 'buzzed') game.phase = 'reveal';
+
+      io.emit('reveal_answer_to_all', {
+        index: game.questionIndex,
+        answer: gameData[game.questionIndex].a,
+      });
       broadcastState();
     });
   });
