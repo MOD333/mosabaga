@@ -288,6 +288,23 @@ export default function PlayerView({ playerId, onExit }) {
   const iExpired = Boolean(state?.answerExpired) && state?.answerExpiredPlayerId === playerId;
   const answerSeconds = Math.max(0, Math.ceil(answerRemaining));
 
+  /* ---------- أنواع السؤال + لوحة المتصدرين ----------
+     يجب أن تُعرَّف قبل canBuzz لأنه يقرأ memoryImagePhase.
+     (وضعها بعده سابقاً سبّب: Cannot access 'memoryImagePhase' before initialization) */
+  const isIntro = state?.question?.type === 'intro';
+  const isMemory = state?.question?.type === 'memory';
+  // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
+  const memoryImagePhase = isMemory && memoryPhase === 'image';
+
+  // تظهر لوحة المتصدرين عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
+  const showLeaderboard =
+    !isIntro &&
+    phase !== 'lobby' &&
+    phase !== 'finished' &&
+    (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
+
+  const showBuzzer = !isIntro && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+
   const canBuzz =
     phase === 'question' &&
     !memoryImagePhase &&
@@ -298,21 +315,6 @@ export default function PlayerView({ playerId, onExit }) {
     !optimistic;
 
   const isDanger = remaining <= 3 && remaining > 0;
-
-  /* ---------------------- لوحة المتصدرين على جوال اللاعب ---------------------- */
-  // تظهر عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
-  const isIntro = state?.question?.type === 'intro';
-  const isMemory = state?.question?.type === 'memory';
-  // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
-  const memoryImagePhase = isMemory && memoryPhase === 'image';
-
-  const showLeaderboard =
-    !isIntro &&
-    phase !== 'lobby' &&
-    phase !== 'finished' &&
-    (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
-
-  const showBuzzer = !isIntro && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
 
   // فرق نقاطي في الجولة الأخيرة (يُصفَّر عند عرض سؤال جديد)
   useEffect(() => {
