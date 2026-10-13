@@ -715,14 +715,23 @@ export default function HostView({ onExit }) {
                       <SoftButton
                         variant="primary"
                         size="md"
-                        onClick={() => {
-                          send('host:skipRound');
-                          pushToast({
-                            tone: 'honey',
-                            title: '⏭️ تخطي الفقرة',
-                            body: 'الانتقال إلى أول سؤال في الفقرة التالية',
-                          });
-                        }}
+                        onClick={() =>
+                          socket.emit('host:skipRound', {}, (response) => {
+                            if (response?.ok) {
+                              pushToast({
+                                tone: 'honey',
+                                title: '⏭️ تخطي الفقرة',
+                                body: 'تم الانتقال إلى أول سؤال في الفقرة التالية',
+                              });
+                            } else {
+                              pushToast({
+                                tone: 'neutral',
+                                title: 'لا توجد فقرة تالية',
+                                body: 'هذا آخر نوع في المسابقة',
+                              });
+                            }
+                          })
+                        }
                       >
                         ⏭️ تخطي للفقرة التالية
                       </SoftButton>

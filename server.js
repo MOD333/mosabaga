@@ -564,37 +564,30 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ---------- تخطي إلى أول سؤال في الفقرة (الجولة) التالية ----------
-  socket.on('host:skipRound', () => {
+  // ---------- تخطي إلى أول سؤال من فقرة (نوع) مختلف ----------
+  socket.on('host:skipRound', (_payload, ack) => {
+    if (socket.data.role !== 'host') return respond(ack, { ok: false, reason: 'not-host' });
+
     withHost(socket, () => {
-      const currentRound =
+      const current =
         game.questionIndex >= 0 && game.questionIndex < TOTAL_QUESTIONS
-          ? roundOf(gameData[game.questionIndex])
+          ? gameData[game.questionIndex]
           : null;
 
-      // أول سؤال بعد الحالي تختلف جولته عن الجولة الحالية
+      // لا يوجد سؤال حالي → لا نفعل شيئاً
+      if (!current) return respond(ack, { ok: false, reason: 'no-question' });
+
+      // أول سؤال بعد الحالي يختلف نوعه عن النوع الحالي (image ↔ emoji)
       let target = -1;
       for (let i = game.questionIndex + 1; i < TOTAL_QUESTIONS; i += 1) {
-        if (roundOf(gameData[i]) !== currentRound) {
+        if (gameData[i].type !== current.type) {
           target = i;
           break;
         }
       }
 
-      // لا توجد فقرة تالية → إنهاء المسابقة
-      if (target === -1) {
-        game.timer.running = false;
-        game.timer.remaining = 0;
-        game.timer.endAt = 0;
-        game.buzzedPlayerId = null;
-        game.lockedOut.clear();
-        game.answerRevealed = false;
-        game.isQuestionRevealed = false;
-        game.phase = 'finished';
-        io.emit('game:finished', { standings: buildState().players });
-        broadcastState();
-        return;
-      }
+      // لا توجد فقرة جديدة → لا نفعل شيئاً (ولا ننهي المسابقة)
+      if (target === -1) return respond(ack, { ok: false, reason: 'no-next-category' });
 
       // loadQuestion تعيد isQuestionRevealed إلى false تلقائياً (بانتظار العرض)
       loadQuestion(target);
@@ -605,6 +598,7 @@ io.on('connection', (socket) => {
         skippedRound: true,
       });
       broadcastState();
+      respond(ack, { ok: true, index: target, type: gameData[target].type });
     });
   });
 
