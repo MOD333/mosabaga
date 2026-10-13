@@ -298,12 +298,15 @@ export default function PlayerView({ playerId, onExit }) {
 
   /* ---------------------- لوحة المتصدرين على جوال اللاعب ---------------------- */
   // تظهر عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
+  const isIntro = state?.question?.type === 'intro';
+
   const showLeaderboard =
+    !isIntro &&
     phase !== 'lobby' &&
     phase !== 'finished' &&
     (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
 
-  const showBuzzer = !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+  const showBuzzer = !isIntro && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
 
   // فرق نقاطي في الجولة الأخيرة (يُصفَّر عند عرض سؤال جديد)
   useEffect(() => {
@@ -430,6 +433,42 @@ export default function PlayerView({ playerId, onExit }) {
 
   /* ---------------------- محتوى الحالة ---------------------- */
   const statusCard = () => {
+    // فقرة تمهيدية — بلا جرس وبلا مؤقّت
+    if (state?.question?.type === 'intro') {
+      return (
+        <motion.div
+          key={`intro-${state.questionIndex}`}
+          initial={{ opacity: 0, scale: 0.94, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-2xl"
+        >
+          <motion.span
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 14, delay: 0.1 }}
+            className="mb-4 inline-block text-6xl"
+          >
+            🎬
+          </motion.span>
+
+          <motion.h2
+            animate={{ scale: [1, 1.03, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-4xl text-amber-600 font-bold mb-6"
+          >
+            {state.question.title}
+          </motion.h2>
+
+          <p className="text-2xl text-gray-700 leading-relaxed text-center">
+            {state.question.description}
+          </p>
+
+          <p className="mt-6 text-sm font-bold text-stone-400">استعد… الفقرة تبدأ الآن</p>
+        </motion.div>
+      );
+    }
+
     if (phase === 'lobby') {
       return (
         <Card className="w-full max-w-sm p-6 text-center">
@@ -658,7 +697,7 @@ export default function PlayerView({ playerId, onExit }) {
 
       {/* ============ المحتوى ============ */}
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto scroll-soft px-5 py-4">
-        {state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
+        {!isIntro && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
             initial={{ opacity: 0, y: -16, scale: 0.97 }}

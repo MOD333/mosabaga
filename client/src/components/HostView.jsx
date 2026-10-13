@@ -317,6 +317,7 @@ export default function HostView({ onExit }) {
   const phase = state?.phase || 'lobby';
   const question = state?.question || null;
   const revealed = Boolean(state?.isQuestionRevealed);
+  const isIntro = question?.type === 'intro';
 
   // القائمة الحيّة القادمة من السيرفر (مصدر فوري لحالة الاتصال)
   const liveIds = useMemo(
@@ -342,13 +343,15 @@ export default function HostView({ onExit }) {
   const liveCount = livePlayers.length;
 
   const canStartTimer =
+    !isIntro &&
     revealed &&
     (phase === 'question' && !state?.timerRunning && !state?.buzzedPlayerId);
   const canJudge = Boolean(state?.buzzedPlayerId);
-  const canReveal = Boolean(question) && phase !== 'lobby';
+  const canReveal = !isIntro && Boolean(question) && phase !== 'lobby';
 
-  const phaseLabel =
-    phase !== 'lobby' && phase !== 'finished' && !revealed
+  const phaseLabel = isIntro
+    ? 'فقرة تمهيدية'
+    : phase !== 'lobby' && phase !== 'finished' && !revealed
       ? 'السؤال مخفي — بانتظار العرض'
       : {
           lobby: 'بانتظار البدء',
@@ -486,7 +489,40 @@ export default function HostView({ onExit }) {
               </div>
 
               <div className="flex min-h-[190px] items-center justify-center py-2">
-                {!revealed && phase !== 'lobby' ? (
+                {isIntro ? (
+                  <motion.div
+                    key={`intro-${state?.questionIndex}`}
+                    initial={{ opacity: 0, scale: 0.94, y: 18 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                    className="flex w-full flex-col items-center gap-4 text-center"
+                  >
+                    <motion.span
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 240, damping: 14, delay: 0.1 }}
+                      className="text-6xl"
+                    >
+                      🎬
+                    </motion.span>
+
+                    <motion.h2
+                      animate={{ scale: [1, 1.03, 1] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                      className="text-4xl text-amber-600 font-bold mb-6"
+                    >
+                      {question.title}
+                    </motion.h2>
+
+                    <p className="max-w-2xl text-2xl text-gray-700 leading-relaxed text-center">
+                      {question.description}
+                    </p>
+
+                    <p className="text-sm font-bold text-stone-400">
+                      اضغط «السؤال التالي» لبدء الفقرة
+                    </p>
+                  </motion.div>
+                ) : !revealed && phase !== 'lobby' ? (
                   <motion.div
                     key={`hidden-${state?.questionIndex}`}
                     initial={{ opacity: 0, y: 14 }}

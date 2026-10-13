@@ -40,6 +40,9 @@ const nameOf = (playerId) => playerMeta(playerId)?.name ?? '';
 const ROUND_LABEL = 'الرابط العجيب';
 const roundOf = (item) => item?.round || ROUND_LABEL;
 
+/** هل السؤال فقرة تمهيدية؟ (بلا جرس وبلا مؤقّت) */
+const isIntro = (index) => gameData[index]?.type === 'intro';
+
 // ----------------------------- الحالة العالمية -----------------------------
 const game = {
   phase: 'lobby', // lobby | question | buzzed | reveal | timeup | finished
@@ -271,7 +274,8 @@ function broadcastTick() {
 function loadQuestion(index) {
   game.questionIndex = index;
   game.phase = index >= 0 && index < TOTAL_QUESTIONS ? 'question' : 'lobby';
-  game.isQuestionRevealed = false; // السؤال مخفي حتى يقرر المضيف عرضه
+  // الفقرة التمهيدية تُعرض مباشرة، أما السؤال فيبقى مخفياً حتى يقرر المضيف عرضه
+  game.isQuestionRevealed = isIntro(index);
   game.buzzedPlayerId = null;
   game.lockedOut.clear();
   game.answerRevealed = false;
@@ -455,6 +459,7 @@ io.on('connection', (socket) => {
   socket.on('buzz', (_payload, ack) => {
     const playerId = socket.data.playerId;
     if (!playerId) return respond(ack, { ok: false, reason: 'unknown-player' });
+    if (isIntro(game.questionIndex)) return respond(ack, { ok: false, reason: 'intro' });
     if (!game.isQuestionRevealed) return respond(ack, { ok: false, reason: 'not-revealed' });
     if (game.phase === 'finished' || game.phase === 'lobby') {
       return respond(ack, { ok: false, reason: 'inactive' });
@@ -606,6 +611,7 @@ io.on('connection', (socket) => {
     withHost(socket, () => {
       if (game.phase === 'finished') return;
       if (game.phase === 'lobby') loadQuestion(0);
+      if (isIntro(game.questionIndex)) return; // الفقرة التمهيدية بلا مؤقّت
       if (!game.isQuestionRevealed) return; // ممنوع قبل عرض السؤال
       if (game.phase === 'timeup' || game.phase === 'reveal') return;
       if (game.buzzedPlayerId) return;
@@ -680,6 +686,7 @@ io.on('connection', (socket) => {
   socket.on('reveal_answer_to_all', () => {
     withHost(socket, () => {
       if (game.questionIndex < 0 || game.questionIndex >= TOTAL_QUESTIONS) return;
+      if (isIntro(game.questionIndex)) return; // لا توجد إجابة في الفقرة التمهيدية
 
       game.answerRevealedToAll = true;
       game.answerRevealed = true;
