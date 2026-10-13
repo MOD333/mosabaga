@@ -27,6 +27,8 @@ export default function PlayerView({ playerId, onExit }) {
   const prevScoreRef = useRef(null);
   // إخفاء شاشة الفوز يدوياً
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  // مهلة الإجابة (٣ ثوانٍ)
+  const [answerRemaining, setAnswerRemaining] = useState(0);
 
   const buzzLock = useRef(false);
   const shake = useAnimation();
@@ -72,7 +74,11 @@ export default function PlayerView({ playerId, onExit }) {
       setState(next);
       setRemaining(next.remaining);
       setOptimistic(false);
+      if (!next.answerWindowActive) setAnswerRemaining(0);
     };
+
+    const onAnswerTick = (payload) => setAnswerRemaining(payload.remaining);
+    const onAnswerStarted = (payload) => setAnswerRemaining(payload.duration);
 
     const onTick = (payload) => setRemaining(payload.remaining);
 
@@ -148,6 +154,8 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('game:reset', onGameReset);
     socket.on('question:revealed', onQuestionRevealed);
     socket.on('game:hard_reset', onHardReset);
+    socket.on('answer:tick', onAnswerTick);
+    socket.on('answer:started', onAnswerStarted);
 
     return () => {
       socket.off('game:state', onState);
@@ -163,6 +171,8 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('game:reset', onGameReset);
       socket.off('question:revealed', onQuestionRevealed);
       socket.off('game:hard_reset', onHardReset);
+      socket.off('answer:tick', onAnswerTick);
+      socket.off('answer:started', onAnswerStarted);
     };
   }, [playerId, notify, shake]);
 
@@ -187,6 +197,11 @@ export default function PlayerView({ playerId, onExit }) {
   const otherBuzzer = someoneElseBuzzed
     ? players.find((item) => item.id === state.buzzedPlayerId)
     : null;
+
+  // مهلة الإجابة (٣ ثوانٍ)
+  const answerActive = Boolean(state?.answerWindowActive) && iBuzzed;
+  const iExpired = Boolean(state?.answerExpired) && state?.answerExpiredPlayerId === playerId;
+  const answerSeconds = Math.max(0, Math.ceil(answerRemaining));
 
   const canBuzz =
     phase === 'question' &&
@@ -392,6 +407,34 @@ export default function PlayerView({ playerId, onExit }) {
     }
 
     if (iBuzzed || (optimistic && phase === 'question')) {
+      // مهلة الإجابة الجارية: عدّ تنازلي ٣ .. ٢ .. ١
+      if (answerActive) {
+        const danger = answerRemaining <= 1.5;
+        return (
+          <motion.div
+            key={`answer-${answerSeconds}`}
+            initial={{ scale: 0.72, opacity: 0.5 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 430, damping: 20 }}
+            className={cx(
+              'w-full max-w-sm rounded-3xl border p-6 text-center shadow-soft-lg',
+              danger ? 'border-coral-300 bg-coral-50' : 'border-sage-200 bg-sage-50'
+            )}
+          >
+            <p className="text-[11px] font-black tracking-[0.25em] text-stone-400">وقت الإجابة</p>
+            <p
+              className={cx(
+                'font-display text-7xl font-black leading-none tabular-nums',
+                danger ? 'text-coral-500' : 'text-sage-600'
+              )}
+            >
+              {answerSeconds}
+            </p>
+            <p className="mt-2 text-sm font-bold text-stone-500">أجب الآن بصوت عالٍ!</p>
+          </motion.div>
+        );
+      }
+
       return (
         <Card className="w-full max-w-sm border-sage-200 bg-sage-50 p-5 text-center">
           <p className="font-display text-2xl font-black text-sage-700">🎤 أنت الأول!</p>
@@ -661,6 +704,60 @@ export default function PlayerView({ playerId, onExit }) {
                 </SoftButton>
               </div>
             </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ انتهت مهلة الإجابة (٣ ثوانٍ) ============ */}
+      <AnimatePresence>
+        {iExpired && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[75] flex flex-col items-center justify-center bg-coral-600 px-6 text-center"
+          >
+            <motion.span
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+              className="text-7xl"
+            >
+              ⏰
+            </motion.span>
+
+            <motion.h1
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 260, damping: 18 }}
+              className="mt-4 font-display text-5xl font-black text-white sm:text-6xl"
+            >
+              انتهى الوقت!
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22 }}
+              className="mt-4 max-w-xs text-sm font-bold leading-relaxed text-white/90"
+            >
+              انتهت مهلتك (٣ ثوانٍ) للإجابة، ولا يمكنك الإجابة الآن.
+              بانتظار قرار المضيف…
+            </motion.p>
+
+            <motion.div
+              className="mt-8 h-1.5 w-32 overflow-hidden rounded-full bg-white/30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <motion.div
+                className="h-full w-1/3 rounded-full bg-white"
+                animate={{ x: ['-120%', '320%'] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

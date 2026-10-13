@@ -20,6 +20,7 @@ const __dirname = path.dirname(__filename);
 // ----------------------------- الإعدادات -----------------------------
 const PORT = Number(process.env.PORT) || 3001;
 const TIMER_DURATION = 7; // ٧ ثوانٍ
+const ANSWER_WINDOW = 3; // ٣ ثوانٍ مهلة الإجابة بعد الضغط على الجرس
 const TOTAL_QUESTIONS = gameData.length;
 
 // ----------------------------- اللاعبون الأربعة (ثابتون) -----------------------------
@@ -47,6 +48,10 @@ const game = {
   answerRevealed: false,
   lastAward: null,
   timer: { running: false, endAt: 0, remaining: TIMER_DURATION },
+  // مهلة الإجابة (٣ ثوانٍ) — تبدأ فور ضغط الجرس
+  answerWindow: { active: false, endAt: 0 },
+  answerExpired: false,
+  answerExpiredPlayerId: null,
 };
 
 // ----------------------------- اللاعبون المتصلون (بث فوري) -----------------------------
@@ -81,6 +86,64 @@ function remainingSeconds() {
 
 function eligiblePlayerIds() {
   return PLAYER_IDS.filter((playerId) => !game.lockedOut.has(playerId));
+}
+
+/* ---------------- مهلة الإجابة (٣ ثوانٍ) ---------------- */
+
+function answerRemainingSeconds() {
+  if (!game.answerWindow.active) return 0;
+  return Math.max(0, (game.answerWindow.endAt - Date.now()) / 1000);
+}
+
+function startAnswerWindow() {
+  game.answerWindow.active = true;
+  game.answerWindow.endAt = Date.now() + ANSWER_WINDOW * 1000;
+  game.answerExpired = false;
+  game.answerExpiredPlayerId = null;
+  io.emit('answer:started', { duration: ANSWER_WINDOW });
+}
+
+function clearAnswerWindow() {
+  game.answerWindow.active = false;
+  game.answerWindow.endAt = 0;
+  game.answerExpired = false;
+  game.answerExpiredPlayerId = null;
+}
+
+/** انتهت المهلة دون أن يحكم المضيف */
+function expireAnswerWindow() {
+  game.answerWindow.active = false;
+  game.answerWindow.endAt = 0;
+  game.answerExpired = true;
+  game.answerExpiredPlayerId = game.buzzedPlayerId;
+
+  io.emit('answer:expired', {
+    playerId: game.answerExpiredPlayerId,
+    playerName: game.answerExpiredPlayerId ? nameOf(game.answerExpiredPlayerId) : null,
+    remaining: Number(remainingSeconds().toFixed(2)),
+  });
+  broadcastState();
+}
+
+/** منح النقاط للاعب الذي ضغط — يُستخدم للحكم الصحيح ولحساب النقطة بعد انتهاء المهلة */
+function awardBuzzedPlayer() {
+  const playerId = game.buzzedPlayerId;
+  if (!playerId) return;
+
+  const remaining = remainingSeconds();
+  const points = Math.max(1, Math.round(remaining));
+  game.scores[playerId] = (game.scores[playerId] || 0) + points;
+  game.lastAward = { playerId, playerName: nameOf(playerId), points };
+
+  clearAnswerWindow();
+  game.timer.running = false;
+  game.timer.remaining = remaining;
+  game.timer.endAt = 0;
+  game.phase = 'reveal';
+  game.answerRevealed = true;
+
+  io.emit('correct', { playerId, playerName: nameOf(playerId), points, score: game.scores[playerId] });
+  broadcastState();
 }
 
 function isConnected(playerId) {
@@ -152,6 +215,12 @@ function buildState() {
     timerDuration: TIMER_DURATION,
     remaining: Number(remainingSeconds().toFixed(2)),
     timerRunning: game.timer.running,
+    answerWindowActive: game.answerWindow.active,
+    answerDuration: ANSWER_WINDOW,
+    answerRemaining: Number(answerRemainingSeconds().toFixed(2)),
+    answerExpired: game.answerExpired,
+    answerExpiredPlayerId: game.answerExpiredPlayerId,
+    answerExpiredPlayerName: game.answerExpiredPlayerId ? nameOf(game.answerExpiredPlayerId) : null,
     buzzedPlayerId: game.buzzedPlayerId,
     buzzedPlayerName: game.buzzedPlayerId ? nameOf(game.buzzedPlayerId) : null,
     answerRevealed: game.answerRevealed,
@@ -198,6 +267,7 @@ function loadQuestion(index) {
   game.timer.running = false;
   game.timer.remaining = TIMER_DURATION;
   game.timer.endAt = 0;
+  clearAnswerWindow();
 }
 
 function endQuestion(reason) {
@@ -223,6 +293,7 @@ function releaseClaim(socket) {
       if (game.buzzedPlayerId === playerId) {
         game.buzzedPlayerId = null;
         game.timer.running = false;
+        clearAnswerWindow();
         if (game.phase === 'buzzed') game.phase = 'question';
       }
     }
@@ -373,6 +444,7 @@ io.on('connection', (socket) => {
     game.timer.endAt = 0;
     game.buzzedPlayerId = playerId;
     game.phase = 'buzzed';
+    startAnswerWindow(); // تبدأ مهلة الـ٣ ثوانٍ فوراً
 
     io.emit('buzzed', {
       playerId,
@@ -533,27 +605,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:correct', () => {
     withHost(socket, () => {
-      const playerId = game.buzzedPlayerId;
-      if (!playerId) return;
-
-      const remaining = remainingSeconds();
-      const points = Math.max(1, Math.round(remaining));
-      game.scores[playerId] = (game.scores[playerId] || 0) + points;
-      game.lastAward = { playerId, playerName: nameOf(playerId), points };
-
-      game.timer.running = false;
-      game.timer.remaining = remaining;
-      game.timer.endAt = 0;
-      game.phase = 'reveal';
-      game.answerRevealed = true;
-
-      io.emit('correct', {
-        playerId,
-        playerName: nameOf(playerId),
-        points,
-        score: game.scores[playerId],
-      });
-      broadcastState();
+      awardBuzzedPlayer(); // يمنح النقاط ويلغي مهلة الإجابة
     });
   });
 
@@ -564,6 +616,7 @@ io.on('connection', (socket) => {
 
       game.lockedOut.add(playerId);
       game.buzzedPlayerId = null;
+      clearAnswerWindow();
       io.emit('wrong', { playerId, playerName: nameOf(playerId) });
 
       const remaining = remainingSeconds();
@@ -656,6 +709,7 @@ io.on('connection', (socket) => {
       game.timer.running = false;
       game.timer.remaining = TIMER_DURATION;
       game.timer.endAt = 0;
+      clearAnswerWindow();
       if (game.phase === 'timeup') game.phase = 'question';
       io.emit('timer:reset', { remaining: TIMER_DURATION });
       broadcastState();
@@ -670,8 +724,28 @@ io.on('connection', (socket) => {
       game.timer.running = false;
       game.timer.remaining = TIMER_DURATION;
       game.timer.endAt = 0;
+      clearAnswerWindow();
       if (game.phase !== 'finished' && game.phase !== 'lobby') game.phase = 'question';
       io.emit('buzzers:reset');
+      broadcastState();
+    });
+  });
+
+  /* ---------- قرارات مهلة الإجابة (٣ ثوانٍ) ---------- */
+
+  // «حساب النقطة» — احتساب النقطة رغم انتهاء المهلة
+  socket.on('host:awardExpired', () => {
+    withHost(socket, () => {
+      if (!game.answerExpired) return;
+      awardBuzzedPlayer();
+    });
+  });
+
+  // «إعادة الوقت / إلغاء» — إعطاء مهلة جديدة
+  socket.on('host:resetAnswerTime', () => {
+    withHost(socket, () => {
+      if (!game.buzzedPlayerId) return;
+      startAnswerWindow();
       broadcastState();
     });
   });
@@ -693,15 +767,31 @@ io.on('connection', (socket) => {
 
 // ----------------------------- حلقة المؤقت (Tick Loop) -----------------------------
 setInterval(() => {
-  if (!game.timer.running) return;
-  const remaining = (game.timer.endAt - Date.now()) / 1000;
+  // مؤقّت السؤال (٧ ثوانٍ)
+  if (game.timer.running) {
+    const remaining = (game.timer.endAt - Date.now()) / 1000;
 
-  if (remaining <= 0) {
-    game.timer.running = false;
-    game.timer.remaining = 0;
-    endQuestion('timeout');
-  } else {
-    broadcastTick();
+    if (remaining <= 0) {
+      game.timer.running = false;
+      game.timer.remaining = 0;
+      endQuestion('timeout');
+    } else {
+      broadcastTick();
+    }
+  }
+
+  // مهلة الإجابة (٣ ثوانٍ)
+  if (game.answerWindow.active) {
+    const answerRemaining = (game.answerWindow.endAt - Date.now()) / 1000;
+
+    if (answerRemaining <= 0) {
+      expireAnswerWindow();
+    } else {
+      io.emit('answer:tick', {
+        remaining: Number(answerRemaining.toFixed(2)),
+        duration: ANSWER_WINDOW,
+      });
+    }
   }
 }, 100);
 
