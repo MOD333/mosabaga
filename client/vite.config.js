@@ -15,6 +15,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false,
+    // مصدر الخرائط مُفعّل: بدونه تظهر أسماء مُصغَّرة مثل 'Z' أو 'G' في الأخطاء،
+    // ومعها يستطيع المتصفح إرجاعها إلى الاسم والملف والسطر الحقيقي.
+    sourcemap: true,
   },
 });
