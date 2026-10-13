@@ -43,6 +43,9 @@ const roundOf = (item) => item?.round || ROUND_LABEL;
 /** هل السؤال فقرة تمهيدية؟ (بلا جرس وبلا مؤقّت) */
 const isIntro = (index) => gameData[index]?.type === 'intro';
 
+/** مدة المؤقّت لهذا السؤال (timeLimit) أو المدة الافتراضية */
+const timeLimitOf = (index) => gameData[index]?.timeLimit || TIMER_DURATION;
+
 // ----------------------------- الحالة العالمية -----------------------------
 const game = {
   phase: 'lobby', // lobby | question | buzzed | reveal | timeup | finished
@@ -226,7 +229,7 @@ function buildState() {
     question: game.isQuestionRevealed ? current : null,
     hiddenQuestionRound: current ? roundOf(current) : null,
     round: current ? roundOf(current) : null,
-    timerDuration: TIMER_DURATION,
+    timerDuration: timeLimitOf(game.questionIndex),
     remaining: Number(remainingSeconds().toFixed(2)),
     timerRunning: game.timer.running,
     answerWindowActive: game.answerWindow.active,
@@ -267,7 +270,7 @@ function broadcastTick() {
   io.emit('timer:tick', {
     remaining: Number(remainingSeconds().toFixed(2)),
     running: game.timer.running,
-    duration: TIMER_DURATION,
+    duration: timeLimitOf(game.questionIndex),
   });
 }
 
@@ -282,7 +285,7 @@ function loadQuestion(index) {
   game.answerRevealedToAll = false;
   game.lastAward = null;
   game.timer.running = false;
-  game.timer.remaining = TIMER_DURATION;
+  game.timer.remaining = timeLimitOf(index);
   game.timer.endAt = 0;
   clearAnswerWindow();
 }
@@ -617,14 +620,15 @@ io.on('connection', (socket) => {
       if (game.buzzedPlayerId) return;
       if (eligiblePlayerIds().length === 0) return;
 
-      const remaining = game.timer.remaining > 0.2 ? game.timer.remaining : TIMER_DURATION;
+      const limit = timeLimitOf(game.questionIndex);
+      const remaining = game.timer.remaining > 0.2 ? game.timer.remaining : limit;
       game.timer.remaining = remaining;
       game.timer.endAt = Date.now() + remaining * 1000;
       game.timer.running = true;
       game.phase = 'question';
       game.answerRevealed = false;
 
-      io.emit('timer:started', { remaining, duration: TIMER_DURATION });
+      io.emit('timer:started', { remaining, duration: limit });
       broadcastState();
     });
   });
@@ -754,11 +758,11 @@ io.on('connection', (socket) => {
   socket.on('reset_timer', () => {
     withHost(socket, () => {
       game.timer.running = false;
-      game.timer.remaining = TIMER_DURATION;
+      game.timer.remaining = timeLimitOf(game.questionIndex);
       game.timer.endAt = 0;
       clearAnswerWindow();
       if (game.phase === 'timeup') game.phase = 'question';
-      io.emit('timer:reset', { remaining: TIMER_DURATION });
+      io.emit('timer:reset', { remaining: timeLimitOf(game.questionIndex) });
       broadcastState();
     });
   });
@@ -769,7 +773,7 @@ io.on('connection', (socket) => {
       game.lockedOut.clear();
       game.answerRevealed = false;
       game.timer.running = false;
-      game.timer.remaining = TIMER_DURATION;
+      game.timer.remaining = timeLimitOf(game.questionIndex);
       game.timer.endAt = 0;
       clearAnswerWindow();
       if (game.phase !== 'finished' && game.phase !== 'lobby') game.phase = 'question';

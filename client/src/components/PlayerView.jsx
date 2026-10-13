@@ -35,6 +35,8 @@ export default function PlayerView({ playerId, onExit }) {
   // كشف الإجابة للجميع
   const [answerShownToAll, setAnswerShownToAll] = useState(false);
   const [revealedAnswer, setRevealedAnswer] = useState(null);
+  // فقرة الذاكرة (ركز زين): مرحلة الصورة ثم مرحلة السؤال
+  const [memoryPhase, setMemoryPhase] = useState('image');
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -288,6 +290,7 @@ export default function PlayerView({ playerId, onExit }) {
 
   const canBuzz =
     phase === 'question' &&
+    !memoryImagePhase &&
     Boolean(state?.isQuestionRevealed) &&
     Boolean(state?.timerRunning) &&
     !state?.buzzedPlayerId &&
@@ -299,6 +302,9 @@ export default function PlayerView({ playerId, onExit }) {
   /* ---------------------- لوحة المتصدرين على جوال اللاعب ---------------------- */
   // تظهر عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
   const isIntro = state?.question?.type === 'intro';
+  const isMemory = state?.question?.type === 'memory';
+  // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
+  const memoryImagePhase = isMemory && memoryPhase === 'image';
 
   const showLeaderboard =
     !isIntro &&
@@ -345,6 +351,15 @@ export default function PlayerView({ playerId, onExit }) {
   useEffect(() => {
     if (phase !== 'finished') setVictoryDismissed(false);
   }, [phase]);
+
+  /* فقرة الذاكرة: صورة ٥ ثوانٍ ثم السؤال */
+  useEffect(() => {
+    if (state?.question?.type !== 'memory') return undefined;
+
+    setMemoryPhase('image');
+    const timeoutId = window.setTimeout(() => setMemoryPhase('question'), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [state?.questionIndex, state?.question?.type]);
 
   /* ---------------------- الضغط ---------------------- */
   const handleBuzz = useCallback(() => {
@@ -413,6 +428,10 @@ export default function PlayerView({ playerId, onExit }) {
 
   /* ---------------------- شكل الجرس ---------------------- */
   const buzzer = useMemo(() => {
+    // مرحلة صورة الذاكرة: الجرس معطّل تماماً
+    if (memoryImagePhase) {
+      return { bg: 'bg-stone-100 text-stone-400', emoji: '👁️', label: 'ركز!', hint: 'شاهد الصورة قبل اختفائها' };
+    }
     if (iBuzzed || (optimistic && phase === 'question')) {
       return { bg: 'bg-sage-300 text-sage-800', emoji: '🎤', label: 'أنت الأول!', hint: 'جاوب بصوت عالٍ' };
     }
@@ -429,7 +448,7 @@ export default function PlayerView({ playerId, onExit }) {
       return { bg: 'bg-stone-100 text-stone-400', emoji: '⏳', label: 'انتهت الجولة', hint: 'بانتظار السؤال التالي' };
     }
     return { bg: 'bg-stone-100 text-stone-400', emoji: '🔔', label: 'استعد', hint: 'بانتظار المضيف' };
-  }, [canBuzz, iBuzzed, iLockedOut, optimistic, phase, someoneElseBuzzed]);
+  }, [canBuzz, iBuzzed, iLockedOut, memoryImagePhase, optimistic, phase, someoneElseBuzzed]);
 
   /* ---------------------- محتوى الحالة ---------------------- */
   const statusCard = () => {
@@ -465,6 +484,37 @@ export default function PlayerView({ playerId, onExit }) {
           </p>
 
           <p className="mt-6 text-sm font-bold text-stone-400">استعد… الفقرة تبدأ الآن</p>
+        </motion.div>
+      );
+    }
+
+    // فقرة الذاكرة — مرحلة الصورة (٥ ثوانٍ، بلا سؤال وبلا جرس)
+    if (memoryImagePhase) {
+      return (
+        <motion.div
+          key={`memory-image-${state.questionIndex}`}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-6 text-center shadow-2xl"
+        >
+          <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-4">
+            {state.question.category}
+          </div>
+
+          <img
+            src={state.question.mediaUrl}
+            className="w-full max-h-[50vh] md:max-h-96 object-contain rounded-xl mb-4 shadow-sm"
+            alt="Puzzle"
+          />
+
+          <motion.p
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-4xl font-black text-coral-500 md:text-5xl"
+          >
+            ركز في الصورة!
+          </motion.p>
         </motion.div>
       );
     }
@@ -697,7 +747,7 @@ export default function PlayerView({ playerId, onExit }) {
 
       {/* ============ المحتوى ============ */}
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto scroll-soft px-5 py-4">
-        {!isIntro && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
+        {!isIntro && !memoryImagePhase && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
             initial={{ opacity: 0, y: -16, scale: 0.97 }}

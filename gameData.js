@@ -33,7 +33,20 @@ export const gameData = [
   { question: "🌊 🚤 🏖️ ☀️", category: "حي في جدة", type: "emoji", answer: "أبحر" },
   { question: "🏚️ 🏮 🚶‍♂️ ☕", category: "حي في جدة", type: "emoji", answer: "البلد" },
   { question: "🎓 📚 🚗 🚦", category: "حي في جدة", type: "emoji", answer: "الجامعة" },
-  { question: "🚓 👨‍✈️ 🔫 🚗 🎙️", category: "لعبة", type: "emoji", answer: "قراند رول بلاي (FiveM)" }
+  { question: "🚓 👨‍✈️ 🔫 🚗 🎙️", category: "لعبة", type: "emoji", answer: "قراند رول بلاي (FiveM)" },
+
+  // ---------- فقرة ركز زين (الذاكرة) ----------
+  { type: "intro", title: "فقرة ركز زين (اختبار الذاكرة) 👁️", description: "بتظهر لك صورة لمدة 5 ثواني فقط وبعدها بتختفي. ركز في كل تفاصيل الصورة لأن السؤال بيجيك عن شيء دقيق فيها!" },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem1.jpg", question: "كم عدد أيادي السوني اللي كانت على الطاولة؟", answer: "3 أيادي", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem2.jpg", question: "إيش كان لون الباص اللي في الخلفية؟", answer: "أصفر", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem3.jpg", question: "كم علبة مشروب كانت جنب صحن الكبسة؟", answer: "2 (علبتين)", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem4.jpg", question: "الحرامي كان لابس كاب ولا قناع على عينه؟", answer: "قناع", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem5.jpg", question: "كم كوب قهوة ورقي كان موجود على الطاولة؟", answer: "4 أكواب", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem6.jpg", question: "إيش كان لون الدلة اللي على النار؟", answer: "فضي", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem7.jpg", question: "إيش كان لون السيارة اللي ورا الميكانيكي؟", answer: "أحمر", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem8.jpg", question: "ثلاجة الآيسكريم كان لونها أزرق ولا وردي؟", answer: "وردي", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem9.jpg", question: "النتيجة في الشاشة الكبيرة كانت كم كم؟", answer: "2 - 1", timeLimit: 15 },
+  { category: "ركز زين", type: "memory", mediaUrl: "/media/mem10.jpg", question: "الساعة المعلقة على الجدار كانت تأشر على أي وقت؟", answer: "الساعة 3", timeLimit: 15 }
 ];
 
 export default gameData;

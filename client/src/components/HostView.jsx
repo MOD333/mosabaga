@@ -562,12 +562,18 @@ export default function HostView({ onExit }) {
                       </p>
                     )}
 
-                    {question.type === 'image' && (
+                    {(question.type === 'image' || question.type === 'memory') && (
                       <img
                         src={question.mediaUrl}
                         className="w-full max-h-[50vh] md:max-h-96 object-contain rounded-xl mb-4 shadow-sm"
                         alt="Puzzle"
                       />
+                    )}
+
+                    {question.type === 'memory' && (
+                      <p className="text-sm font-bold text-coral-500">
+                        👁️ الصورة تظهر للاعبين ٥ ثوانٍ ثم يظهر السؤال — انتظرها قبل بدء المؤقت
+                      </p>
                     )}
 
                     {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس */}
@@ -598,8 +604,8 @@ export default function HostView({ onExit }) {
               <div className="mt-6 flex flex-col items-center gap-6 border-t border-stone-100 pt-6 sm:flex-row sm:justify-between">
                 <div className="flex items-center gap-5">
                   <TimerRing
-                    remaining={phase === 'lobby' ? TIMER_DURATION : remaining}
-                    duration={TIMER_DURATION}
+                    remaining={phase === 'lobby' ? state?.timerDuration || TIMER_DURATION : remaining}
+                    duration={state?.timerDuration || TIMER_DURATION}
                     size={158}
                     stroke={11}
                   />
