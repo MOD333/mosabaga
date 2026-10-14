@@ -6,6 +6,7 @@ import sound, { vibrate } from '../lib/sound.js';
 import { Avatar, Card, ConnectionDot, Pill, SoftButton, cx } from './ui.jsx';
 import Leaderboard from './Leaderboard.jsx';
 import VictoryScreen from './VictoryScreen.jsx';
+import Certificate from './Certificate.jsx';
 import { playerById, toneOf } from '../data/players.js';
 import { TIMER_DURATION } from '../data/gameData.js';
 
@@ -777,6 +778,17 @@ export default function PlayerView({ playerId, onExit }) {
           <p className="mt-2 text-sm text-stone-500">
             مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
           </p>
+
+          {/* شهادة الفائز — مرئية للجميع */}
+          {victoryWinner && (
+            <div className="mt-6">
+              <Certificate
+                winnerName={victoryWinner.name}
+                isCurrentPlayerWinner={playerId === victoryWinner.id}
+              />
+            </div>
+          )}
+
           <div className="mt-5 space-y-1.5">
             {sortedPlayers.slice(0, 4).map((item, index) => (
               <div

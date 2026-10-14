@@ -123,3 +123,28 @@
     text-wrap: balance;
   }
 }
+
+/* ============================================================
+   طباعة الشهادة فقط
+   #certificate-print-root يُرسم عبر Portal مباشرة تحت <body>
+   حتى لا يُقصّ بسبب transform / overflow في التطبيق.
+   ============================================================ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  body > #root {
+    display: none !important;
+  }
+
+  body > #certificate-print-root {
+    display: block !important;
+  }
+}
