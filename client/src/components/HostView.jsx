@@ -651,10 +651,10 @@ export default function HostView({ onExit }) {
                     {/* فك التشفير — زر منح النقاط لأول من حل */}
                     {question.type === 'scramble' && scrambleWinner && (
                       <button
-                        onClick={() => adjustScore(scrambleWinner, 5)}
+                        onClick={() => adjustScore(scrambleWinner, 2)}
                         className="bg-green-600 text-white font-bold py-4 px-6 rounded-xl w-full"
                       >
-                        إعطاء 5 نقاط لأول من فك التشفير 🏆
+                        إعطاء 2 نقاط لأول من فك التشفير 🏆
                       </button>
                     )}
 

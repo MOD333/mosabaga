@@ -65,9 +65,11 @@ export const gameData = [
   { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.25 نقطة)", timeLimit: 10 },
 
   // ---------- فك التشفير ----------
-  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "م و د ك و ر د", answer: "مودكورد", timeLimit: 20 },
-  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "خ ز ا ئ ن ا ل ن و ا د ر", answer: "خزائن النوادر", timeLimit: 20 },
-  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ل ا ع و ا ل", answer: "العوال", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ي ش ب ت ن ا ل س ي", answer: "بلايستيشن", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ر م ش ا و ا", answer: "شاورما", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "س ر د س م ي", answer: "مرسيدس", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "و ت ي ب و ي", answer: "يوتيوب", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ف ا ر ي ن م ك ت", answer: "ماينكرافت", timeLimit: 20 },
 
   // ---------- الحسبة الخاطفة ----------
   { category: "الحسبة الخاطفة", type: "math", level: "سهل", points: 2, question: "15 + 18 = ?", options: ["23", "33", "43", "35"], answer: "33", timeLimit: 10 },
