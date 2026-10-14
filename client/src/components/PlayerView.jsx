@@ -243,6 +243,20 @@ export default function PlayerView({ playerId, onExit }) {
       setReactionWinnerName(name);
     };
 
+    // إنهاء المسابقة فوراً — تنظيف حالة الألعاب المصغّرة وإظهار النتائج
+    const onForcedEnd = () => {
+      setTurboPoints(0);
+      setScrambleInput('');
+      setScrambleSolved(false);
+      setMathSolved(false);
+      setHasFailed(false);
+      setReactionReady(false);
+      setReactionWinnerName(null);
+      setAimScore(0);
+      setVictoryDismissed(false);
+      notify('تم إنهاء المسابقة 🛑', 'coral');
+    };
+
     socket.on('game:state', onState);
     socket.on('timer:tick', onTick);
     socket.on('timer:started', onStarted);
@@ -261,6 +275,7 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('warning', onWarning);
     socket.on('reveal_answer_to_all', onRevealAnswerToAll);
     socket.on('reaction-winner', onReactionWinner);
+    socket.on('game:forced-end', onForcedEnd);
 
     return () => {
       socket.off('game:state', onState);
@@ -281,6 +296,7 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('warning', onWarning);
       socket.off('reveal_answer_to_all', onRevealAnswerToAll);
       socket.off('reaction-winner', onReactionWinner);
+      socket.off('game:forced-end', onForcedEnd);
     };
   }, [playerId, notify, shake, playAlert]);
 

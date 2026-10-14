@@ -791,6 +791,23 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ---------- إنهاء المسابقة فوراً (لاختبار النتائج والشهادة) ----------
+  socket.on('force-end-game', () => {
+    withHost(socket, () => {
+      game.timer.running = false;
+      game.timer.endAt = 0;
+      game.buzzedPlayerId = null;
+      game.lockedOut.clear();
+      game.answerRevealed = false;
+      game.isQuestionRevealed = false;
+      game.phase = 'finished';
+      clearAnswerWindow();
+
+      io.emit('game:forced-end');
+      broadcastState();
+    });
+  });
+
   // ---------- أوامر لوحة الإدارة (Admin Panel) ----------
 
   socket.on('manual_score_update', (payload, ack) => {

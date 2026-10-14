@@ -198,6 +198,16 @@ export default function HostView({ onExit }) {
       pushToast({ tone: 'coral', title: '⚠️ تم تصفير اللعبة بالكامل', body: 'كل النقاط = 0' });
     };
 
+    // إنهاء المسابقة فوراً — تنظيف الحالة المحلية وعرض النتائج
+    const onForcedEnd = () => {
+      setScrambleWinner(null);
+      setMathWinner(null);
+      setLiveAimScores({});
+      setReactionWinnerName(null);
+      setVictoryDismissed(false);
+      pushToast({ tone: 'coral', title: '🛑 تم إنهاء المسابقة فوراً', body: 'عرض النتائج النهائية' });
+    };
+
     // تحدي التيربو — نقاط مباشرة لكل لاعب
     const onTurboScore = (payload) => {
       if (!payload?.playerId) return;
@@ -242,6 +252,7 @@ export default function HostView({ onExit }) {
     socket.on('game:started', onGameStarted);
     socket.on('question:revealed', onQuestionRevealed);
     socket.on('game:hard_reset', onHardReset);
+    socket.on('game:forced-end', onForcedEnd);
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
     socket.on('answer:expired', onAnswerExpired);
@@ -271,6 +282,7 @@ export default function HostView({ onExit }) {
       socket.off('game:started', onGameStarted);
       socket.off('question:revealed', onQuestionRevealed);
       socket.off('game:hard_reset', onHardReset);
+      socket.off('game:forced-end', onForcedEnd);
       socket.off('answer:tick', onAnswerTick);
       socket.off('answer:started', onAnswerStarted);
       socket.off('answer:expired', onAnswerExpired);
@@ -1053,6 +1065,16 @@ export default function HostView({ onExit }) {
             <SoftButton variant="ghost" size="md" onClick={() => send('host:nextQuestion')}>
               {state?.questionIndex >= TOTAL_QUESTIONS - 1 ? 'إنهاء المسابقة' : 'السؤال التالي ⏭'}
             </SoftButton>
+
+            {/* إنهاء المسابقة فوراً — للاختبار السريع للنتائج والشهادة */}
+            <button
+              type="button"
+              onClick={() => send('force-end-game')}
+              disabled={phase === 'finished'}
+              className="rounded-xl bg-coral-500 px-4 py-2.5 text-sm font-black text-white shadow-soft transition-colors hover:bg-coral-600 active:bg-coral-700 disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none"
+            >
+              إنهاء المسابقة فوراً 🛑
+            </button>
           </div>
         </div>
       </footer>
