@@ -64,6 +64,8 @@ const game = {
   answerExpiredPlayerId: null,
   // كشف الإجابة لجميع اللاعبين
   answerRevealedToAll: false,
+  // أسرع رد فعل — أول لاعب يفوز مباشرة (علم لكل سؤال)
+  reactionWon: false,
   // نظام الإنذارات
   warningCounts: Object.fromEntries(PLAYERS.map((player) => [player.id, 0])),
   activeWarnings: {}, // playerId -> { id, reason, at }
@@ -283,6 +285,7 @@ function loadQuestion(index) {
   game.lockedOut.clear();
   game.answerRevealed = false;
   game.answerRevealedToAll = false;
+  game.reactionWon = false;
   game.lastAward = null;
   game.timer.running = false;
   game.timer.remaining = timeLimitOf(index);
@@ -527,6 +530,26 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       score: Number(data?.score) || 0,
     });
+  });
+
+  // ---------- أسرع رد فعل — منح ٣ نقاط فورية بدون حكم المضيف ----------
+  socket.on('reaction-instant-win', () => {
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    if (isIntro(game.questionIndex)) return;
+    if (gameData[game.questionIndex]?.type !== 'reaction') return; // مخصّص لهذه اللعبة فقط
+    if (game.reactionWon) return; // أول لاعب فقط
+
+    game.reactionWon = true;
+    game.scores[playerId] = (game.scores[playerId] || 0) + 3;
+
+    // الحسم فوري: نوقف المؤقت
+    game.timer.running = false;
+    game.timer.endAt = 0;
+
+    io.emit('reaction-winner', nameOf(playerId));
+    // broadcastState يبث game:state + update_players (قائمة المتصدرين المحدّثة) لكل الأجهزة
+    broadcastState();
   });
 
   // ==================== المضيف (Host) ====================

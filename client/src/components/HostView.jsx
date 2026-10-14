@@ -45,6 +45,8 @@ export default function HostView({ onExit }) {
   const [mathWinner, setMathWinner] = useState(null);
   // صيد الهدف — نتائج مباشرة
   const [liveAimScores, setLiveAimScores] = useState({});
+  // أسرع رد فعل — الفائز الفوري
+  const [reactionWinnerName, setReactionWinnerName] = useState(null);
   // نظام الإنذارات
   const [warnOpen, setWarnOpen] = useState(false);
   const [warnTarget, setWarnTarget] = useState(null);
@@ -220,6 +222,12 @@ export default function HostView({ onExit }) {
       setLiveAimScores((current) => ({ ...current, [payload.playerId]: payload.score }));
     };
 
+    // أسرع رد فعل — اسم الفائز الفوري
+    const onReactionWinner = (name) => {
+      if (!name) return;
+      setReactionWinnerName(name);
+    };
+
     socket.on('game:state', onState);
     socket.on('update_players', onUpdatePlayers);
     socket.on('timer:tick', onTick);
@@ -241,6 +249,7 @@ export default function HostView({ onExit }) {
     socket.on('scramble-win-broadcast', onScrambleWin);
     socket.on('math-win-broadcast', onMathWin);
     socket.on('aim-score-broadcast', onAimScore);
+    socket.on('reaction-winner', onReactionWinner);
 
     return () => {
       socket.off('game:state', onState);
@@ -248,6 +257,7 @@ export default function HostView({ onExit }) {
       socket.off('scramble-win-broadcast', onScrambleWin);
       socket.off('math-win-broadcast', onMathWin);
       socket.off('aim-score-broadcast', onAimScore);
+      socket.off('reaction-winner', onReactionWinner);
       socket.off('update_players', onUpdatePlayers);
       socket.off('timer:tick', onTick);
       socket.off('timer:started', onStarted);
@@ -363,6 +373,7 @@ export default function HostView({ onExit }) {
   const question = state?.question || null;
   const revealed = Boolean(state?.isQuestionRevealed);
   const isIntro = question?.type === 'intro';
+  const isReactionQuestion = question?.type === 'reaction';
 
   // القائمة الحيّة القادمة من السيرفر (مصدر فوري لحالة الاتصال)
   const liveIds = useMemo(
@@ -427,6 +438,7 @@ export default function HostView({ onExit }) {
     setScrambleWinner(null);
     setMathWinner(null);
     setLiveAimScores({});
+    setReactionWinnerName(null);
   }, [state?.questionIndex]);
 
   /* ================================================================ */
@@ -522,16 +534,6 @@ export default function HostView({ onExit }) {
                       <span className="text-sm font-bold text-stone-400"> ث</span>
                     </p>
                   </div>
-
-                  {/* أسرع رد فعل — منح نقاط للفائز بالجرس */}
-                  {question?.type === 'reaction' && (
-                    <button
-                      onClick={() => adjustScore(buzzedPlayer.id, 5)}
-                      className="bg-green-600 text-white font-bold py-2 px-4 rounded-xl"
-                    >
-                      +5 النقاط
-                    </button>
-                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -717,6 +719,15 @@ export default function HostView({ onExit }) {
                             ))}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* أسرع رد فعل — تأكيد الفوز الفوري (النقاط تُحتسب تلقائياً) */}
+                    {question.type === 'reaction' && reactionWinnerName && (
+                      <div className="bg-green-100 border-4 border-green-500 rounded-2xl p-8 text-center">
+                        <h2 className="text-3xl font-black text-green-700">
+                          تمت إضافة 3 نقاط دايركت للاعب: {reactionWinnerName} 🏆
+                        </h2>
                       </div>
                     )}
 
@@ -1000,12 +1011,22 @@ export default function HostView({ onExit }) {
             </SoftButton>
           )}
 
-          <SoftButton variant="success" size="lg" disabled={!canJudge} onClick={() => send('host:correct')}>
+          <SoftButton
+            variant="success"
+            size="lg"
+            disabled={!canJudge || isReactionQuestion}
+            onClick={() => send('host:correct')}
+          >
             ✔ إجابة صحيحة
             <span className="text-xs opacity-70">(+{Math.max(1, Math.round(remaining))})</span>
           </SoftButton>
 
-          <SoftButton variant="danger" size="lg" disabled={!canJudge} onClick={() => send('host:wrong')}>
+          <SoftButton
+            variant="danger"
+            size="lg"
+            disabled={!canJudge || isReactionQuestion}
+            onClick={() => send('host:wrong')}
+          >
             ✖ إجابة خاطئة
           </SoftButton>
 

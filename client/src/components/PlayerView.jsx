@@ -48,6 +48,7 @@ export default function PlayerView({ playerId, onExit }) {
   const [hasFailed, setHasFailed] = useState(false);
   // أسرع رد فعل
   const [reactionReady, setReactionReady] = useState(false);
+  const [reactionWinnerName, setReactionWinnerName] = useState(null);
   // صيد الهدف
   const [aimScore, setAimScore] = useState(0);
   // نظام الإنذارات
@@ -235,6 +236,12 @@ export default function PlayerView({ playerId, onExit }) {
       vibrate([90, 60, 90, 60, 90]);
     };
 
+    // أسرع رد فعل — اسم الفائز
+    const onReactionWinner = (name) => {
+      if (!name) return;
+      setReactionWinnerName(name);
+    };
+
     socket.on('game:state', onState);
     socket.on('timer:tick', onTick);
     socket.on('timer:started', onStarted);
@@ -252,6 +259,7 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('answer:started', onAnswerStarted);
     socket.on('warning', onWarning);
     socket.on('reveal_answer_to_all', onRevealAnswerToAll);
+    socket.on('reaction-winner', onReactionWinner);
 
     return () => {
       socket.off('game:state', onState);
@@ -271,6 +279,7 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('answer:started', onAnswerStarted);
       socket.off('warning', onWarning);
       socket.off('reveal_answer_to_all', onRevealAnswerToAll);
+      socket.off('reaction-winner', onReactionWinner);
     };
   }, [playerId, notify, shake, playAlert]);
 
@@ -398,6 +407,7 @@ export default function PlayerView({ playerId, onExit }) {
     setMathSolved(false);
     setHasFailed(false);
     setReactionReady(false);
+    setReactionWinnerName(null);
     setAimScore(0);
   }, [state?.questionIndex]);
 
@@ -535,17 +545,21 @@ export default function PlayerView({ playerId, onExit }) {
   };
 
   const statusCard = () => {
-    // أسرع رد فعل — انتظر ثم اضغط
+    // أسرع رد فعل — انتظر ثم اضغط (فوز فوري بدون حكم)
     if (state?.question?.type === 'reaction') {
       return (
         <div className="flex w-full max-w-2xl flex-col items-center">
-          {!reactionReady ? (
+          {reactionWinnerName ? (
+            <div className="text-4xl font-black text-green-600 animate-bounce mt-10">
+              الأسرع هو: {reactionWinnerName} ⚡ (+3 نقاط)
+            </div>
+          ) : !reactionReady ? (
             <div className="w-full h-64 bg-red-600 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-inner">
               انتظر... 🛑
             </div>
           ) : (
             <button
-              onClick={handleBuzz}
+              onClick={() => socket.emit('reaction-instant-win')}
               className="w-full h-64 bg-green-500 active:bg-green-700 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-[0_0_40px_rgba(34,197,94,0.6)]"
             >
               اضغط الآن! 🟢
