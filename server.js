@@ -36,9 +36,9 @@ const playerMeta = (playerId) => PLAYERS.find((player) => player.id === playerId
 const isPlayerId = (value) => PLAYER_IDS.includes(String(value));
 const nameOf = (playerId) => playerMeta(playerId)?.name ?? '';
 
-/** وسم الفقرة — جميع الأسئلة الحالية في فقرة واحدة */
+/** وسم الفقرة — نفضّل تصنيف السؤال الحقيقي، ثم round، ثم الاسم الافتراضي */
 const ROUND_LABEL = 'الرابط العجيب';
-const roundOf = (item) => item?.round || ROUND_LABEL;
+const roundOf = (item) => item?.category || item?.round || ROUND_LABEL;
 
 /** هل السؤال فقرة تمهيدية؟ (بلا جرس وبلا مؤقّت) */
 const isIntro = (index) => gameData[index]?.type === 'intro';
@@ -516,6 +516,16 @@ io.on('connection', (socket) => {
       playerId: socket.data.playerId,
       socketId: socket.id,
       points: Number(data?.points) || 0,
+    });
+  });
+
+  // ---------- صيد الهدف ----------
+  // نرسل معرّف اللاعب الحقيقي (لا socket.id) لأن المضيف يمرّره إلى manual_score_update
+  socket.on('aim-score-update', (data) => {
+    io.emit('aim-score-broadcast', {
+      playerId: socket.data.playerId,
+      socketId: socket.id,
+      score: Number(data?.score) || 0,
     });
   });
 

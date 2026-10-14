@@ -61,9 +61,11 @@ export const gameData = [
   { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 },
 
   // ---------- تحدي التيربو ----------
+  { type: "intro", title: "شرح: تحدي التيربو ⚡", description: "اضغط على الزر بأسرع ما يمكن! كل نقرة تحسب لك 0.10 نقطة. جهز أصابعك واستعد لكسر الشاشة!" },
   { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.10 نقطة)", timeLimit: 10 },
 
   // ---------- فك التشفير ----------
+  { type: "intro", title: "شرح: فك التشفير ⌨️", description: "بتظهر لك حروف ملخبطة. رتبها واكتب الكلمة الصحيحة بأسرع وقت. أول واحد يكتبها صح ياخذ نقطتين! (إجابة خاطئة = تنطرد من السؤال)" },
   { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ي ش ب ت ن ا ل س ي", answer: "بلايستيشن", timeLimit: 20 },
   { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ر م ش ا و ا", answer: "شاورما", timeLimit: 20 },
   { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "س ر د س م ي", answer: "مرسيدس", timeLimit: 20 },
@@ -71,9 +73,17 @@ export const gameData = [
   { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ف ا ر ي ن م ك ت", answer: "ماينكرافت", timeLimit: 20 },
 
   // ---------- الحسبة الخاطفة ----------
+  { type: "intro", title: "شرح: الحسبة الخاطفة 🔢", description: "مسألة رياضية سريعة مع 4 خيارات. التخمين ممنوع، إجابة خاطئة وحدة وتقفل عليك الشاشة!" },
   { category: "الحسبة الخاطفة", type: "math", level: "سهل", points: 2, question: "15 + 18 = ?", options: ["23", "33", "43", "35"], answer: "33", timeLimit: 10 },
   { category: "الحسبة الخاطفة", type: "math", level: "متوسط", points: 4, question: "7 × 6 - 5 = ?", options: ["35", "37", "42", "40"], answer: "37", timeLimit: 10 },
-  { category: "الحسبة الخاطفة", type: "math", level: "صعب", points: 6, question: "(45 ÷ 5) × 8 = ?", options: ["72", "64", "81", "56"], answer: "72", timeLimit: 10 }
+  { category: "الحسبة الخاطفة", type: "math", level: "صعب", points: 6, question: "(45 ÷ 5) × 8 = ?", options: ["72", "64", "81", "56"], answer: "72", timeLimit: 10 },
+
+  // ---------- أسرع رد فعل ----------
+  { type: "intro", title: "شرح: أسرع رد فعل 🟢", description: "الشاشة بتكون حمراء ومكتوب انتظر... أول ما تصير خضراء اضغط بأسرع ما عندك! الفائز له 5 نقاط." },
+  { category: "أسرع رد فعل", type: "reaction", question: "خلك جاهز.. أول ما يخضر اضغط!", timeLimit: 15 },
+  // ---------- صيد الهدف ----------
+  { type: "intro", title: "شرح: صيد الهدف 🎯", description: "هدف أحمر بيتحرك عشوائياً. صيده (اضغط عليه) أكبر عدد ممكن من المرات! الفائز له 5 نقاط." },
+  { category: "صيد الهدف", type: "aim", question: "صِد الهدف بأكبر عدد ممكن! (15 ثانية)", timeLimit: 15 }
 ];
 
 export const TOTAL_QUESTIONS = gameData.length;

@@ -46,6 +46,10 @@ export default function PlayerView({ playerId, onExit }) {
   const [mathSolved, setMathSolved] = useState(false);
   // محاولة خاطئة واحدة = قفل (للحسبة وفك التشفير)
   const [hasFailed, setHasFailed] = useState(false);
+  // أسرع رد فعل
+  const [reactionReady, setReactionReady] = useState(false);
+  // صيد الهدف
+  const [aimScore, setAimScore] = useState(0);
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -305,6 +309,8 @@ export default function PlayerView({ playerId, onExit }) {
   const isTurbo = state?.question?.type === 'turbo';
   const isScramble = state?.question?.type === 'scramble';
   const isMath = state?.question?.type === 'math';
+  const isReaction = state?.question?.type === 'reaction';
+  const isAim = state?.question?.type === 'aim';
   // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
   const memoryImagePhase = isMemory && memoryPhase === 'image';
 
@@ -316,7 +322,15 @@ export default function PlayerView({ playerId, onExit }) {
     (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
 
   const showBuzzer =
-    !isIntro && !isTurbo && !isScramble && !isMath && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+    !isIntro &&
+    !isTurbo &&
+    !isScramble &&
+    !isMath &&
+    !isReaction &&
+    !isAim &&
+    !showLeaderboard &&
+    phase !== 'lobby' &&
+    phase !== 'finished';
 
   const canBuzz =
     phase === 'question' &&
@@ -383,7 +397,20 @@ export default function PlayerView({ playerId, onExit }) {
     setScrambleSolved(false);
     setMathSolved(false);
     setHasFailed(false);
+    setReactionReady(false);
+    setAimScore(0);
   }, [state?.questionIndex]);
+
+  /* أسرع رد فعل: تأخير عشوائي ٢-٥ ثوانٍ قبل أن يخضرّ الزر */
+  useEffect(() => {
+    if (state?.question?.type !== 'reaction') return undefined;
+
+    setReactionReady(false);
+    const delay = 2000 + Math.random() * 3000; // 2000ms – 5000ms
+    const timeoutId = window.setTimeout(() => setReactionReady(true), delay);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [state?.questionIndex, state?.question?.type]);
 
   /* ---------------------- الضغط ---------------------- */
   const handleBuzz = useCallback(() => {
@@ -508,6 +535,48 @@ export default function PlayerView({ playerId, onExit }) {
   };
 
   const statusCard = () => {
+    // أسرع رد فعل — انتظر ثم اضغط
+    if (state?.question?.type === 'reaction') {
+      return (
+        <div className="flex w-full max-w-2xl flex-col items-center">
+          {!reactionReady ? (
+            <div className="w-full h-64 bg-red-600 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-inner">
+              انتظر... 🛑
+            </div>
+          ) : (
+            <button
+              onClick={handleBuzz}
+              className="w-full h-64 bg-green-500 active:bg-green-700 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-[0_0_40px_rgba(34,197,94,0.6)]"
+            >
+              اضغط الآن! 🟢
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // صيد الهدف — حرّك الهدف وصِده
+    if (state?.question?.type === 'aim') {
+      return (
+        <div className="flex w-full max-w-2xl flex-col items-center">
+          <div className="relative w-full h-72 bg-gray-100 rounded-3xl overflow-hidden border-4 border-gray-300">
+            <button
+              onClick={(e) => {
+                const newScore = aimScore + 1;
+                setAimScore(newScore);
+                socket.emit('aim-score-update', { score: newScore });
+                e.target.style.top = Math.random() * 80 + '%';
+                e.target.style.left = Math.random() * 80 + '%';
+              }}
+              className="absolute w-16 h-16 bg-red-600 rounded-full shadow-lg border-4 border-white transition-all duration-150"
+              style={{ top: '40%', left: '40%' }}
+            />
+          </div>
+          <p className="mt-4 font-display text-2xl font-black text-stone-800">النقاط: {aimScore}</p>
+        </div>
+      );
+    }
+
     // الحسبة الخاطفة — اختر الجواب الصحيح
     if (state?.question?.type === 'math') {
       const math = state.question;

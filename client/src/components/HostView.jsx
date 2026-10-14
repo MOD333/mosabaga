@@ -43,6 +43,8 @@ export default function HostView({ onExit }) {
   const [scrambleWinner, setScrambleWinner] = useState(null);
   // الحسبة الخاطفة — الأسرع
   const [mathWinner, setMathWinner] = useState(null);
+  // صيد الهدف — نتائج مباشرة
+  const [liveAimScores, setLiveAimScores] = useState({});
   // نظام الإنذارات
   const [warnOpen, setWarnOpen] = useState(false);
   const [warnTarget, setWarnTarget] = useState(null);
@@ -212,6 +214,12 @@ export default function HostView({ onExit }) {
       setMathWinner((prev) => prev || payload);
     };
 
+    // صيد الهدف — نتائج مباشرة
+    const onAimScore = (payload) => {
+      if (!payload?.playerId) return;
+      setLiveAimScores((current) => ({ ...current, [payload.playerId]: payload.score }));
+    };
+
     socket.on('game:state', onState);
     socket.on('update_players', onUpdatePlayers);
     socket.on('timer:tick', onTick);
@@ -232,12 +240,14 @@ export default function HostView({ onExit }) {
     socket.on('turbo-score-broadcast', onTurboScore);
     socket.on('scramble-win-broadcast', onScrambleWin);
     socket.on('math-win-broadcast', onMathWin);
+    socket.on('aim-score-broadcast', onAimScore);
 
     return () => {
       socket.off('game:state', onState);
       socket.off('turbo-score-broadcast', onTurboScore);
       socket.off('scramble-win-broadcast', onScrambleWin);
       socket.off('math-win-broadcast', onMathWin);
+      socket.off('aim-score-broadcast', onAimScore);
       socket.off('update_players', onUpdatePlayers);
       socket.off('timer:tick', onTick);
       socket.off('timer:started', onStarted);
@@ -416,6 +426,7 @@ export default function HostView({ onExit }) {
   useEffect(() => {
     setScrambleWinner(null);
     setMathWinner(null);
+    setLiveAimScores({});
   }, [state?.questionIndex]);
 
   /* ================================================================ */
@@ -441,8 +452,8 @@ export default function HostView({ onExit }) {
           <div className="mx-2 hidden h-8 w-px bg-stone-100 sm:block" />
 
           <div className="hidden items-center gap-2 sm:flex">
-            {(question?.round || state?.hiddenQuestionRound) && (
-              <Pill tone="honey">{question?.round || state?.hiddenQuestionRound}</Pill>
+            {(question?.category || state?.hiddenQuestionRound) && (
+              <Pill tone="honey">{question?.category || state?.hiddenQuestionRound || 'مسابقة'}</Pill>
             )}
             <Pill tone="white">
               السؤال {Math.max(0, questionNumber)} / {TOTAL_QUESTIONS}
@@ -511,6 +522,16 @@ export default function HostView({ onExit }) {
                       <span className="text-sm font-bold text-stone-400"> ث</span>
                     </p>
                   </div>
+
+                  {/* أسرع رد فعل — منح نقاط للفائز بالجرس */}
+                  {question?.type === 'reaction' && (
+                    <button
+                      onClick={() => adjustScore(buzzedPlayer.id, 5)}
+                      className="bg-green-600 text-white font-bold py-2 px-4 rounded-xl"
+                    >
+                      +5 النقاط
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -519,7 +540,7 @@ export default function HostView({ onExit }) {
             <Card lg className="relative flex flex-col p-6 sm:p-8">
               <div className="mb-5 flex flex-wrap items-center gap-2">
                 <Pill tone="honey">
-                  {question?.round || state?.hiddenQuestionRound || 'بانتظار البدء'}
+                  {question?.category || state?.hiddenQuestionRound || 'مسابقة'}
                 </Pill>
                 {!revealed && phase !== 'lobby' && <Pill tone="coral">👀 السؤال مخفي عن الجميع</Pill>}
                 <span className="sm:hidden">
@@ -666,6 +687,37 @@ export default function HostView({ onExit }) {
                       >
                         إعطاء {mathWinner.points} نقاط للأسرع 🏆
                       </button>
+                    )}
+
+                    {/* صيد الهدف — نتائج مباشرة + منح النقاط */}
+                    {question.type === 'aim' && (
+                      <div className="w-full max-w-2xl rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
+                        <p className="mb-3 text-sm font-black text-green-700">🎯 صيد الأهداف — النتائج المباشرة</p>
+
+                        {Object.keys(liveAimScores).length === 0 ? (
+                          <p className="py-3 text-xs font-bold text-stone-400">بانتظار صيد اللاعبين…</p>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {Object.entries(liveAimScores).map(([playerId, score]) => (
+                              <div
+                                key={playerId}
+                                className="flex items-center gap-3 rounded-xl bg-white px-4 py-2"
+                              >
+                                <span className="truncate text-sm font-bold text-stone-800">
+                                  {playerById(playerId)?.name || 'لاعب'}
+                                </span>
+                                <span className="font-display text-lg font-black text-green-600">{score}</span>
+                                <button
+                                  onClick={() => adjustScore(playerId, 5)}
+                                  className="bg-green-600 text-white py-2 px-4 rounded-xl font-bold mr-auto"
+                                >
+                                  إعطاء 5 نقاط 🏆
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس (لا توجد إجابة في التيربو) */}
