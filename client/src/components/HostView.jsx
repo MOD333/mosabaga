@@ -39,6 +39,10 @@ export default function HostView({ onExit }) {
   const [answerRemaining, setAnswerRemaining] = useState(0);
   // تحدي التيربو — نقاط مباشرة لكل لاعب
   const [liveTurboScores, setLiveTurboScores] = useState({});
+  // فك التشفير — أول من يحل
+  const [scrambleWinner, setScrambleWinner] = useState(null);
+  // الحسبة الخاطفة — الأسرع
+  const [mathWinner, setMathWinner] = useState(null);
   // نظام الإنذارات
   const [warnOpen, setWarnOpen] = useState(false);
   const [warnTarget, setWarnTarget] = useState(null);
@@ -196,6 +200,18 @@ export default function HostView({ onExit }) {
       setLiveTurboScores((current) => ({ ...current, [payload.playerId]: payload.points }));
     };
 
+    // فك التشفير — أول من يحل
+    const onScrambleWin = (payload) => {
+      if (!payload?.playerId) return;
+      setScrambleWinner((prev) => prev || payload.playerId);
+    };
+
+    // الحسبة الخاطفة — الأسرع
+    const onMathWin = (payload) => {
+      if (!payload?.playerId) return;
+      setMathWinner((prev) => prev || payload);
+    };
+
     socket.on('game:state', onState);
     socket.on('update_players', onUpdatePlayers);
     socket.on('timer:tick', onTick);
@@ -214,10 +230,14 @@ export default function HostView({ onExit }) {
     socket.on('answer:started', onAnswerStarted);
     socket.on('answer:expired', onAnswerExpired);
     socket.on('turbo-score-broadcast', onTurboScore);
+    socket.on('scramble-win-broadcast', onScrambleWin);
+    socket.on('math-win-broadcast', onMathWin);
 
     return () => {
       socket.off('game:state', onState);
       socket.off('turbo-score-broadcast', onTurboScore);
+      socket.off('scramble-win-broadcast', onScrambleWin);
+      socket.off('math-win-broadcast', onMathWin);
       socket.off('update_players', onUpdatePlayers);
       socket.off('timer:tick', onTick);
       socket.off('timer:started', onStarted);
@@ -391,6 +411,12 @@ export default function HostView({ onExit }) {
   useEffect(() => {
     if (phase !== 'finished') setVictoryDismissed(false);
   }, [phase]);
+
+  // تصفير فائزي الألعاب المصغّرة عند تغيّر السؤال
+  useEffect(() => {
+    setScrambleWinner(null);
+    setMathWinner(null);
+  }, [state?.questionIndex]);
 
   /* ================================================================ */
   return (
@@ -620,6 +646,26 @@ export default function HostView({ onExit }) {
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* فك التشفير — زر منح النقاط لأول من حل */}
+                    {question.type === 'scramble' && scrambleWinner && (
+                      <button
+                        onClick={() => adjustScore(scrambleWinner, 5)}
+                        className="bg-green-600 text-white font-bold py-4 px-6 rounded-xl w-full"
+                      >
+                        إعطاء 5 نقاط لأول من فك التشفير 🏆
+                      </button>
+                    )}
+
+                    {/* الحسبة الخاطفة — زر منح النقاط للأسرع */}
+                    {question.type === 'math' && mathWinner && (
+                      <button
+                        onClick={() => adjustScore(mathWinner.playerId, mathWinner.points)}
+                        className="bg-purple-600 text-white font-bold py-4 px-6 rounded-xl w-full"
+                      >
+                        إعطاء {mathWinner.points} نقاط للأسرع 🏆
+                      </button>
                     )}
 
                     {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس (لا توجد إجابة في التيربو) */}

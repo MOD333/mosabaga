@@ -500,6 +500,25 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ---------- فك التشفير ----------
+  // نرسل معرّف اللاعب الحقيقي (لا socket.id) لأن المضيف يمرّره إلى manual_score_update
+  socket.on('scramble-win', () => {
+    io.emit('scramble-win-broadcast', {
+      playerId: socket.data.playerId,
+      socketId: socket.id,
+    });
+  });
+
+  // ---------- الحسبة الخاطفة ----------
+  // نرسل معرّف اللاعب الحقيقي (لا socket.id) لأن المضيف يمرّره إلى manual_score_update
+  socket.on('math-win', (data) => {
+    io.emit('math-win-broadcast', {
+      playerId: socket.data.playerId,
+      socketId: socket.id,
+      points: Number(data?.points) || 0,
+    });
+  });
+
   // ==================== المضيف (Host) ====================
 
   socket.on('host:join', (_payload, ack) => {

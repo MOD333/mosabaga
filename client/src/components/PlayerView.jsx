@@ -39,6 +39,11 @@ export default function PlayerView({ playerId, onExit }) {
   const [memoryPhase, setMemoryPhase] = useState('image');
   // تحدي التيربو — كل نقرة = ٠.٢٥ نقطة
   const [turboPoints, setTurboPoints] = useState(0);
+  // فك التشفير
+  const [scrambleInput, setScrambleInput] = useState('');
+  const [scrambleSolved, setScrambleSolved] = useState(false);
+  // الحسبة الخاطفة
+  const [mathSolved, setMathSolved] = useState(false);
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -296,6 +301,8 @@ export default function PlayerView({ playerId, onExit }) {
   const isIntro = state?.question?.type === 'intro';
   const isMemory = state?.question?.type === 'memory';
   const isTurbo = state?.question?.type === 'turbo';
+  const isScramble = state?.question?.type === 'scramble';
+  const isMath = state?.question?.type === 'math';
   // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
   const memoryImagePhase = isMemory && memoryPhase === 'image';
 
@@ -306,7 +313,8 @@ export default function PlayerView({ playerId, onExit }) {
     phase !== 'finished' &&
     (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
 
-  const showBuzzer = !isIntro && !isTurbo && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+  const showBuzzer =
+    !isIntro && !isTurbo && !isScramble && !isMath && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
 
   const canBuzz =
     phase === 'question' &&
@@ -366,9 +374,12 @@ export default function PlayerView({ playerId, onExit }) {
     return () => window.clearTimeout(timeoutId);
   }, [state?.questionIndex, state?.question?.type]);
 
-  /* تحدي التيربو: تصفير العدّاد عند تغيّر السؤال */
+  /* الألعاب المصغّرة: تصفير العدّادات عند تغيّر السؤال */
   useEffect(() => {
     setTurboPoints(0);
+    setScrambleInput('');
+    setScrambleSolved(false);
+    setMathSolved(false);
   }, [state?.questionIndex]);
 
   /* ---------------------- الضغط ---------------------- */
@@ -468,7 +479,89 @@ export default function PlayerView({ playerId, onExit }) {
     socket.emit('turbo-score-update', { points: newPoints });
   };
 
+  /* ---------------------- فك التشفير ---------------------- */
+  const handleScrambleSubmit = (event) => {
+    event.preventDefault();
+    if (scrambleInput.trim() !== state?.question?.answer || scrambleSolved) return;
+    setScrambleSolved(true);
+    socket.emit('scramble-win');
+  };
+
+  /* ---------------------- الحسبة الخاطفة ---------------------- */
+  const handleMathOption = (opt) => {
+    if (mathSolved || opt !== state?.question?.answer) return;
+    setMathSolved(true);
+    socket.emit('math-win', { points: state?.question?.points });
+  };
+
   const statusCard = () => {
+    // الحسبة الخاطفة — اختر الجواب الصحيح
+    if (state?.question?.type === 'math') {
+      const math = state.question;
+      return (
+        <div className="flex w-full max-w-2xl flex-col items-center">
+          {math.level && (
+            <div className="mb-3 w-max rounded-full bg-purple-100 px-4 py-1 text-sm font-bold text-purple-700">
+              {math.level}
+            </div>
+          )}
+
+          <p className="mb-8 text-6xl font-black text-stone-800" dir="ltr">
+            {math.question}
+          </p>
+
+          {mathSolved ? (
+            <p className="font-display text-2xl font-black text-sage-600 md:text-3xl">✅ صح! أنت الأسرع 🏆</p>
+          ) : (
+            <div className="grid w-full grid-cols-2 gap-4">
+              {(math.options || []).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handleMathOption(opt)}
+                  dir="ltr"
+                  className="rounded-2xl border-2 border-stone-200 bg-white py-6 font-display text-3xl font-black text-stone-800 transition-colors hover:border-honey-400 hover:bg-honey-50 active:scale-95"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // فك التشفير — رتّب الحروف
+    if (state?.question?.type === 'scramble') {
+      return (
+        <div className="flex w-full flex-col items-center">
+          <p className="mb-8 text-4xl font-black tracking-widest text-stone-800">
+            {state.question.scrambled}
+          </p>
+
+          {scrambleSolved ? (
+            <p className="font-display text-2xl font-black text-sage-600 md:text-3xl">✅ صح! أنت الأول 🏆</p>
+          ) : (
+            <form onSubmit={handleScrambleSubmit} className="flex w-full max-w-md flex-col gap-3">
+              <input
+                value={scrambleInput}
+                onChange={(event) => setScrambleInput(event.target.value)}
+                placeholder="اكتب الكلمة…"
+                autoComplete="off"
+                className="w-full rounded-xl border-2 border-stone-200 bg-white p-4 text-center text-2xl font-bold text-stone-800 outline-none transition-colors placeholder:text-base placeholder:font-normal placeholder:text-stone-400 focus:border-honey-400"
+              />
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-honey-300 py-3 font-display text-lg font-black text-honey-800 transition-colors hover:bg-honey-400"
+              >
+                إرسال
+              </button>
+            </form>
+          )}
+        </div>
+      );
+    }
+
     // تحدي التيربو — زر ضغط سريع (كل نقرة = ٠.٢٥ نقطة)
     if (state?.question?.type === 'turbo') {
       return (
@@ -777,7 +870,7 @@ export default function PlayerView({ playerId, onExit }) {
 
       {/* ============ المحتوى ============ */}
       <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto scroll-soft px-0 py-2">
-        {!isIntro && !memoryImagePhase && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
+        {!isIntro && !isMath && !memoryImagePhase && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
             initial={{ opacity: 0, y: -16, scale: 0.97 }}

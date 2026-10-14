@@ -62,7 +62,17 @@ export const gameData = [
   { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 },
 
   // ---------- تحدي التيربو ----------
-  { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.25 نقطة)", timeLimit: 10 }
+  { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.25 نقطة)", timeLimit: 10 },
+
+  // ---------- فك التشفير ----------
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "م و د ك و ر د", answer: "مودكورد", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "خ ز ا ئ ن ا ل ن و ا د ر", answer: "خزائن النوادر", timeLimit: 20 },
+  { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ل ا ع و ا ل", answer: "العوال", timeLimit: 20 },
+
+  // ---------- الحسبة الخاطفة ----------
+  { category: "الحسبة الخاطفة", type: "math", level: "سهل", points: 2, question: "15 + 18 = ?", options: ["23", "33", "43", "35"], answer: "33", timeLimit: 10 },
+  { category: "الحسبة الخاطفة", type: "math", level: "متوسط", points: 4, question: "7 × 6 - 5 = ?", options: ["35", "37", "42", "40"], answer: "37", timeLimit: 10 },
+  { category: "الحسبة الخاطفة", type: "math", level: "صعب", points: 6, question: "(45 ÷ 5) × 8 = ?", options: ["72", "64", "81", "56"], answer: "72", timeLimit: 10 }
 ];
 
 export default gameData;
