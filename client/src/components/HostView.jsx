@@ -37,6 +37,8 @@ export default function HostView({ onExit }) {
   const [victoryDismissed, setVictoryDismissed] = useState(false);
   // مهلة الإجابة (٣ ثوانٍ)
   const [answerRemaining, setAnswerRemaining] = useState(0);
+  // تحدي التيربو — نقاط مباشرة لكل لاعب
+  const [liveTurboScores, setLiveTurboScores] = useState({});
   // نظام الإنذارات
   const [warnOpen, setWarnOpen] = useState(false);
   const [warnTarget, setWarnTarget] = useState(null);
@@ -188,6 +190,12 @@ export default function HostView({ onExit }) {
       pushToast({ tone: 'coral', title: '⚠️ تم تصفير اللعبة بالكامل', body: 'كل النقاط = 0' });
     };
 
+    // تحدي التيربو — نقاط مباشرة لكل لاعب
+    const onTurboScore = (payload) => {
+      if (!payload?.playerId) return;
+      setLiveTurboScores((current) => ({ ...current, [payload.playerId]: payload.points }));
+    };
+
     socket.on('game:state', onState);
     socket.on('update_players', onUpdatePlayers);
     socket.on('timer:tick', onTick);
@@ -205,9 +213,11 @@ export default function HostView({ onExit }) {
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
     socket.on('answer:expired', onAnswerExpired);
+    socket.on('turbo-score-broadcast', onTurboScore);
 
     return () => {
       socket.off('game:state', onState);
+      socket.off('turbo-score-broadcast', onTurboScore);
       socket.off('update_players', onUpdatePlayers);
       socket.off('timer:tick', onTick);
       socket.off('timer:started', onStarted);
@@ -581,10 +591,43 @@ export default function HostView({ onExit }) {
                       </p>
                     )}
 
-                    {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس */}
-                    <p className="rounded-xl bg-emerald-50 px-4 py-1.5 text-center font-bold text-emerald-600">
-                      الإجابة: <span className="font-black">{question.answer}</span>
-                    </p>
+                    {/* تحدي التيربو — النقاط المباشرة لكل لاعب */}
+                    {question.type === 'turbo' && (
+                      <div className="w-full max-w-2xl rounded-2xl border border-orange-200 bg-orange-50 p-4 text-center">
+                        <p className="mb-3 text-sm font-black text-orange-700">⚡ نقاط التيربو المباشرة</p>
+
+                        {Object.keys(liveTurboScores).length === 0 ? (
+                          <p className="py-3 text-xs font-bold text-stone-400">بانتظار ضغطات اللاعبين…</p>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {Object.entries(liveTurboScores).map(([playerId, score]) => (
+                              <div
+                                key={playerId}
+                                className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-2"
+                              >
+                                <span className="truncate text-sm font-bold text-stone-800">
+                                  {playerById(playerId)?.name || 'لاعب'}
+                                </span>
+                                <span className="font-display text-lg font-black text-orange-600">{score}</span>
+                                <button
+                                  onClick={() => adjustScore(playerId, score)}
+                                  className="bg-orange-500 text-white font-bold py-1 px-3 rounded-lg ml-4"
+                                >
+                                  إعطاء {score} نقطة ⚡
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* الإجابة — تظهر للمضيف دائماً قبل أي ضغطة جرس (لا توجد إجابة في التيربو) */}
+                    {question.type !== 'turbo' && (
+                      <p className="rounded-xl bg-emerald-50 px-4 py-1.5 text-center font-bold text-emerald-600">
+                        الإجابة: <span className="font-black">{question.answer}</span>
+                      </p>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div

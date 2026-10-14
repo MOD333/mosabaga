@@ -37,6 +37,8 @@ export default function PlayerView({ playerId, onExit }) {
   const [revealedAnswer, setRevealedAnswer] = useState(null);
   // فقرة الذاكرة (ركز زين): مرحلة الصورة ثم مرحلة السؤال
   const [memoryPhase, setMemoryPhase] = useState('image');
+  // تحدي التيربو — كل نقرة = ٠.٢٥ نقطة
+  const [turboPoints, setTurboPoints] = useState(0);
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -293,6 +295,7 @@ export default function PlayerView({ playerId, onExit }) {
      (وضعها بعده سابقاً سبّب: Cannot access 'memoryImagePhase' before initialization) */
   const isIntro = state?.question?.type === 'intro';
   const isMemory = state?.question?.type === 'memory';
+  const isTurbo = state?.question?.type === 'turbo';
   // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
   const memoryImagePhase = isMemory && memoryPhase === 'image';
 
@@ -303,7 +306,7 @@ export default function PlayerView({ playerId, onExit }) {
     phase !== 'finished' &&
     (phase === 'timeup' || phase === 'reveal' || !state?.isQuestionRevealed);
 
-  const showBuzzer = !isIntro && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
+  const showBuzzer = !isIntro && !isTurbo && !showLeaderboard && phase !== 'lobby' && phase !== 'finished';
 
   const canBuzz =
     phase === 'question' &&
@@ -362,6 +365,11 @@ export default function PlayerView({ playerId, onExit }) {
     const timeoutId = window.setTimeout(() => setMemoryPhase('question'), 5000);
     return () => window.clearTimeout(timeoutId);
   }, [state?.questionIndex, state?.question?.type]);
+
+  /* تحدي التيربو: تصفير العدّاد عند تغيّر السؤال */
+  useEffect(() => {
+    setTurboPoints(0);
+  }, [state?.questionIndex]);
 
   /* ---------------------- الضغط ---------------------- */
   const handleBuzz = useCallback(() => {
@@ -453,7 +461,27 @@ export default function PlayerView({ playerId, onExit }) {
   }, [canBuzz, iBuzzed, iLockedOut, memoryImagePhase, optimistic, phase, someoneElseBuzzed]);
 
   /* ---------------------- محتوى الحالة ---------------------- */
+  /* ---------------------- تحدي التيربو ---------------------- */
+  const handleTurboClick = () => {
+    const newPoints = turboPoints + 0.25;
+    setTurboPoints(newPoints);
+    socket.emit('turbo-score-update', { points: newPoints });
+  };
+
   const statusCard = () => {
+    // تحدي التيربو — زر ضغط سريع (كل نقرة = ٠.٢٥ نقطة)
+    if (state?.question?.type === 'turbo') {
+      return (
+        <button
+          onClick={handleTurboClick}
+          className="w-64 h-64 bg-gradient-to-br from-red-500 to-orange-600 rounded-full shadow-[0_0_50px_rgba(239,68,68,0.6)] active:scale-90 active:bg-orange-700 transition-transform duration-75 flex flex-col items-center justify-center text-white font-black text-5xl border-8 border-red-300 select-none"
+        >
+          اضغط!
+          <span className="text-xl mt-2 font-normal">النقاط: {turboPoints}</span>
+        </button>
+      );
+    }
+
     // فقرة تمهيدية — بلا جرس وبلا مؤقّت
     if (state?.question?.type === 'intro') {
       return (

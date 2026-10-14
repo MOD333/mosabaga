@@ -59,7 +59,10 @@ export const gameData = [
   { category: "الكلمة الشاذة", type: "text", question: "بلايستيشن، إكس بوكس، نينتندو، آبل", answer: "آبل (ليست كونسول ألعاب)", timeLimit: 5 },
   { category: "الكلمة الشاذة", type: "text", question: "بندريتا، أبو فلة، ملهم، أبو الرُّب", answer: "ملهم (محتوى تثقيفي، الباقي ترفيه)", timeLimit: 5 },
   { category: "الكلمة الشاذة", type: "text", question: "تويتر، انستقرام، تيك توك، نتفلكس", answer: "نتفلكس (منصة مشاهدة، الباقي تواصل)", timeLimit: 5 },
-  { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 }
+  { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 },
+
+  // ---------- تحدي التيربو ----------
+  { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.25 نقطة)", timeLimit: 10 }
 ];
 
 export default gameData;

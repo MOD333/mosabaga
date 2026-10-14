@@ -489,6 +489,17 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  // ---------- تحدي التيربو ----------
+  // بث مباشر لنقاط اللاعبين. نرسل معرّف اللاعب الحقيقي (لا socket.id)
+  // لأن المضيف يمرّره إلى manual_score_update الذي يتحقق من صلاحية المعرّف.
+  socket.on('turbo-score-update', (data) => {
+    io.emit('turbo-score-broadcast', {
+      playerId: socket.data.playerId,
+      socketId: socket.id,
+      points: Number(data?.points) || 0,
+    });
+  });
+
   // ==================== المضيف (Host) ====================
 
   socket.on('host:join', (_payload, ack) => {
@@ -739,7 +750,9 @@ io.on('connection', (socket) => {
         return respond(ack, { ok: false, error: 'بيانات غير صحيحة' });
       }
 
-      const step = Math.max(-100, Math.min(100, Math.round(delta)));
+      // نحافظ على دقة الكسور (تحدي التيربو = ٠.٢٥ للنقرة)
+      // سلوك الأعداد الصحيحة لم يتغيّر: round(1 * 100) / 100 = 1
+      const step = Math.max(-100, Math.min(100, Math.round(delta * 100) / 100));
       const before = game.scores[playerId] || 0;
       game.scores[playerId] = Math.max(0, before + step);
       const applied = game.scores[playerId] - before;
