@@ -130,11 +130,6 @@
    حتى لا يُقصّ بسبب transform / overflow في التطبيق.
    ============================================================ */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm;
-  }
-
   html,
   body {
     background: #ffffff !important;

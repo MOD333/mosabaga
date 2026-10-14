@@ -786,22 +786,22 @@ export default function PlayerView({ playerId, onExit }) {
       return (
         <div className="w-full">
           {/* ترويسة النهاية */}
-          <div className="mb-4 text-center">
-            <span className="mb-3 inline-block text-5xl">
+          <div className="mb-6 text-center">
+            <span className="mb-3 inline-block text-5xl md:text-6xl">
               {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
             </span>
-            <p className="font-display text-2xl font-black text-stone-800 md:text-3xl">
+            <p className="font-display text-2xl font-black text-stone-800 md:text-4xl">
               {myRank === 1 ? 'مبروك! المركز الأول' : 'انتهت المسابقة'}
             </p>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-stone-500 md:text-base">
               مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
             </p>
           </div>
 
-          {/* الشهادة + النتائج جنباً إلى جنب على الشاشات الكبيرة */}
-          <div className="flex flex-col lg:flex-row items-start justify-center gap-8 w-full max-w-7xl mx-auto p-4">
-            {/* الشهادة */}
-            <div className="w-full lg:w-2/3 flex justify-center order-1 lg:order-2 print:block print:w-full">
+          {/* لوحة النهاية: الشهادة يساراً + الترتيب يميناً */}
+          <div className="flex flex-col-reverse lg:flex-row gap-8 w-full max-w-7xl mx-auto items-start p-4 md:p-8 min-h-[90vh]">
+            {/* الشهادة — المساحة الأكبر */}
+            <div className="w-full lg:w-[70%] order-1 lg:order-2 flex justify-center">
               {victoryWinner && (
                 <Certificate
                   winnerName={victoryWinner.name}
@@ -810,29 +810,52 @@ export default function PlayerView({ playerId, onExit }) {
               )}
             </div>
 
-            {/* النتائج النهائية */}
-            <div className="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-md border border-gray-100 order-2 lg:order-1 print:hidden">
-              <p className="mb-4 text-center font-display text-lg font-black text-stone-800">
-                النتائج النهائية
-              </p>
+            {/* الترتيب النهائي — لوحة مساندة */}
+            <aside className="w-full lg:w-[30%] order-2 lg:order-1 self-start rounded-3xl border border-yellow-100 bg-white p-6 shadow-xl sticky top-6 print:hidden">
+              <h2 className="mb-5 text-center font-display text-xl font-black text-stone-800 md:text-2xl">
+                الترتيب النهائي 🏆
+              </h2>
 
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 {sortedPlayers.slice(0, 4).map((item, index) => (
-                  <div
+                  <motion.div
                     key={item.id}
+                    layout
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 28, delay: index * 0.06 }}
                     className={cx(
-                      'flex items-center gap-3 rounded-xl px-3 py-2',
-                      item.id === playerId ? 'bg-honey-100' : 'bg-stone-50'
+                      'flex items-center gap-3 rounded-2xl px-4 py-3.5',
+                      item.id === playerId
+                        ? 'bg-yellow-50 ring-2 ring-yellow-400'
+                        : 'bg-stone-50 ring-1 ring-stone-100'
                     )}
                   >
-                    <span className="w-5 text-sm font-black text-stone-400">{index + 1}</span>
+                    <motion.span
+                      layout
+                      className={cx(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-black',
+                        index === 0
+                          ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 text-white shadow-md'
+                          : 'bg-white text-stone-500 ring-1 ring-stone-200'
+                      )}
+                    >
+                      {index + 1}
+                    </motion.span>
+
                     <Avatar player={item} size="xs" />
-                    <span className="flex-1 truncate text-sm font-bold text-stone-700">{item.name}</span>
-                    <span className="font-display font-black text-stone-800">{item.score}</span>
-                  </div>
+
+                    <span className="flex-1 truncate text-sm font-bold text-stone-700 md:text-base">
+                      {item.name}
+                    </span>
+
+                    <span className="font-display text-lg font-black text-stone-800 md:text-xl">
+                      {item.score}
+                    </span>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </aside>
           </div>
         </div>
       );

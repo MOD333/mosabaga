@@ -4,19 +4,20 @@ import { motion } from 'framer-motion';
 
 import { cx } from './ui.jsx';
 
-/* توقيع حر بخطّ يدوي — حلقات وانعطافات حادة وذيل سفلي طويل (ليس موجة جيبية) */
+/* توقيع يدوي حر لـ «محمد»: حلقات دائرية، انحناءات حبر متفاوتة، وذيل سفلي طويل.
+   (وليس موجة جيبية — كل مقطع يختلف عن سابقه في الاتجاه والعمق) */
 const SIGNATURE_PATH =
-  'M 20 96 C 12 70 26 48 42 58 C 52 64 54 78 44 76 ' +
-  'C 66 50 82 42 98 60 C 108 70 106 84 92 78 ' +
-  'C 118 44 142 34 160 56 C 172 68 168 84 152 78 ' +
-  'C 182 40 210 32 228 54 C 240 65 236 82 218 76 ' +
-  'C 248 42 276 34 292 56 C 300 66 296 82 280 78 ' +
-  'C 306 66 322 64 336 72 C 344 76 342 84 332 80 ' +
-  'C 320 94 250 106 150 104 C 80 102 36 98 12 90';
+  'M 30 118 C 22 94 36 72 56 82 C 68 88 66 104 52 100 ' +
+  'C 76 76 98 68 114 88 C 126 102 120 120 102 112 ' +
+  'C 132 74 160 62 180 86 C 194 102 188 124 166 118 ' +
+  'C 198 84 228 70 250 92 C 264 106 258 126 238 118 ' +
+  'C 270 82 302 68 324 90 C 338 104 332 124 312 116 ' +
+  'C 338 104 354 110 362 126 C 368 138 360 148 348 142 ' +
+  'C 332 134 300 152 240 154 C 160 156 80 150 34 140 C 20 137 12 132 8 126';
 
 /**
- * شهادة مباركة وتفوّق — تصميم فاخر واقعي.
- * مرئية للجميع، والتفاعل (التوقيع + التصدير) محصور بالفائز فقط.
+ * شهادة مباركة وتفوّق — قياس A4 أفقي، مرئية للجميع.
+ * التوقيع والتصدير متاحان للفائز فقط.
  */
 export default function Certificate({ winnerName, isCurrentPlayerWinner = false }) {
   const [signed, setSigned] = useState(false);
@@ -32,97 +33,98 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
   const body = (
     <div
       className={cx(
-        // ورق عاجي + إطار مزدوج فاخر
-        'mx-auto w-full max-w-3xl bg-[#fdfbf7]',
+        // ورق عاجي + مقاس A4 أفقي (aspect-ratio حدّ أدنى فقط: يتمدد إن زاد المحتوى فلا يُقصّ)
+        'relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center',
+        'bg-[#fdfbf7] aspect-[1.414/1] text-center',
+        // إطارات فاخرة
         'border-[12px] border-double border-yellow-600',
         'outline outline-4 outline-offset-4 outline-yellow-800',
-        'm-8 p-12 shadow-2xl',
-        // الطباعة: يملأ الصفحة بلا هوامش ولا ظلال
-        'print:m-0 print:border-[16px] print:p-10 print:shadow-none'
+        // حشوة متجاوبة تمنع الفيضان
+        'p-6 sm:p-12 md:p-16 shadow-2xl',
+        // الطباعة
+        'print:m-0 print:p-8 print:shadow-none print:border-[16px] print:outline-none'
       )}
     >
-      <div className="flex flex-col items-center space-y-8 text-center">
-        {/* التاج */}
-        <svg viewBox="0 0 64 48" className="h-12 w-16 text-yellow-600" fill="none" aria-hidden="true">
-          <path d="M12 40 L12 16 L24 26 L32 8 L40 26 L52 16 L52 40 Z" fill="currentColor" />
-          <circle cx="12" cy="15" r="3" fill="currentColor" />
-          <circle cx="32" cy="6" r="3" fill="currentColor" />
-          <circle cx="52" cy="15" r="3" fill="currentColor" />
-          <rect x="8" y="43" width="48" height="4" rx="2" fill="currentColor" />
-        </svg>
+      {/* زخارف الزوايا الذهبية */}
+      <span className="pointer-events-none absolute right-4 top-4 h-8 w-8 border-r-4 border-t-4 border-yellow-500/70 sm:h-12 sm:w-12" />
+      <span className="pointer-events-none absolute left-4 top-4 h-8 w-8 border-l-4 border-t-4 border-yellow-500/70 sm:h-12 sm:w-12" />
+      <span className="pointer-events-none absolute bottom-4 right-4 h-8 w-8 border-b-4 border-r-4 border-yellow-500/70 sm:h-12 sm:w-12" />
+      <span className="pointer-events-none absolute bottom-4 left-4 h-8 w-8 border-b-4 border-l-4 border-yellow-500/70 sm:h-12 sm:w-12" />
 
-        {/* العنوان — تدرّج ذهبي */}
-        <h1
-          className={cx(
-            'bg-gradient-to-b from-yellow-500 to-yellow-700 bg-clip-text text-transparent',
-            'text-4xl font-black leading-relaxed pb-1 md:text-6xl print:text-5xl'
-          )}
-        >
-          شَهَادَةُ مُبَارَكَة وَتَفَوُّق
-        </h1>
+      {/* التاج */}
+      <div className="mb-4 text-4xl md:text-5xl">👑</div>
 
-        {/* عبارة المنح */}
-        <p className="text-lg font-semibold text-gray-500 md:text-xl print:text-lg">
-          تُمنح هذه الشهادة بكل فخر واعتزاز إلى:
-        </p>
+      {/* العنوان */}
+      <h1
+        className={cx(
+          'bg-gradient-to-b from-yellow-500 via-yellow-600 to-yellow-800 bg-clip-text text-transparent',
+          'text-2xl font-black leading-relaxed tracking-wide pb-1 sm:text-4xl md:text-5xl'
+        )}
+      >
+        شَهَادَةُ مُبَارَكَة وَتَفَوُّق
+      </h1>
 
-        {/* اسم الفائز — الأكبر والأبرز */}
-        <div className="flex flex-col items-center">
-          <span className="text-6xl font-black leading-none text-gray-900 md:text-8xl print:text-7xl">
-            {winnerName || '—'}
-          </span>
-          <span className="mt-3 h-1 w-48 rounded-full bg-gradient-to-r from-transparent via-yellow-500 to-transparent md:w-64" />
+      <p className="mt-4 text-sm text-gray-500 sm:text-base">
+        تُمنح هذه الشهادة بكل فخر واعتزاز إلى:
+      </p>
+
+      {/* اسم الفائز — البطل */}
+      <h2
+        className={cx(
+          'mb-4 mt-4 max-w-full px-2 pb-2 font-black text-gray-900',
+          'border-b-4 border-yellow-500',
+          'text-4xl sm:text-5xl md:text-6xl break-words'
+        )}
+      >
+        {winnerName || '—'}
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-loose text-gray-600 sm:text-base md:text-lg">
+        لحصوله على <span className="font-black text-yellow-700">المركز الأول</span> في مسابقة «تحدي
+        العوال» وتحقيقه أعلى مجموع نقاط بين جميع المتنافسين. نتمنى له دوام التوفيق والنجاح.
+      </p>
+
+      {/* الشبكة السفلية */}
+      <div className="mt-8 grid w-full grid-cols-2 gap-8 border-t border-gray-200/50 pt-6 text-right md:mt-12 md:pt-8">
+        {/* تاريخ الإصدار (يمين في RTL) */}
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-xs font-bold text-gray-400 sm:text-sm">تاريخ الإصدار</span>
+          <span className="text-sm font-black text-gray-800 sm:text-lg">{issueDate}</span>
         </div>
 
-        {/* الوصف */}
-        <p className="max-w-2xl text-base font-medium leading-loose text-gray-600 md:text-lg print:text-base">
-          لحصوله على المركز الأول في مسابقة «تحدي العوال» وتحقيقه أعلى مجموع نقاط بين جميع
-          المتنافسين. نتمنى له دوام التوفيق والنجاح.
-        </p>
+        {/* توقيع المُضيف (يسار في RTL) */}
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-xs font-bold text-gray-400 sm:text-sm">توقيع المُضيف: محمد</span>
 
-        {/* الشبكة السفلية: التاريخ + التوقيع */}
-        <div className="mt-16 grid w-full grid-cols-2 gap-8 border-t-2 border-gray-200 pt-8">
-          {/* تاريخ الإصدار */}
-          <div className="flex flex-col items-center justify-end gap-2">
-            <span className="text-sm font-bold text-gray-500">تاريخ الإصدار</span>
-            <span className="text-lg font-black text-gray-800">{issueDate}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => canSign && setSigned(true)}
+            aria-label="منطقة التوقيع"
+            className={cx('relative mt-1 block select-none', canSign ? 'cursor-pointer' : 'cursor-default')}
+          >
+            <svg viewBox="0 0 400 170" className="h-16 w-44 sm:h-20 sm:w-56 print:h-24 print:w-64">
+              <path
+                pathLength="1000"
+                d={SIGNATURE_PATH}
+                className={cx(
+                  'fill-none stroke-gray-900',
+                  '[stroke-width:3] [stroke-linecap:round] [stroke-linejoin:round]',
+                  '[stroke-dasharray:1000]',
+                  signed ? 'animate-[draw_2.5s_ease-out_forwards]' : '[stroke-dashoffset:1000]'
+                )}
+              />
+            </svg>
 
-          {/* توقيع المُضيف */}
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-sm font-bold text-gray-500">توقيع المُضيف: محمد</span>
-
-            <button
-              type="button"
-              onClick={() => canSign && setSigned(true)}
-              aria-label="منطقة التوقيع"
-              className={cx('relative mt-1 block select-none', canSign ? 'cursor-pointer' : 'cursor-default')}
-            >
-              <svg viewBox="0 0 400 160" className="h-20 w-56 print:h-24 print:w-64">
-                <path
-                  pathLength="1000"
-                  d={SIGNATURE_PATH}
-                  className={cx(
-                    'fill-none stroke-amber-800',
-                    '[stroke-width:3.5] [stroke-linecap:round] [stroke-linejoin:round]',
-                    '[stroke-dasharray:1000]',
-                    signed ? '[stroke-dashoffset:0]' : '[stroke-dashoffset:1000]',
-                    'transition-[stroke-dashoffset] duration-[2000ms] ease-out'
-                  )}
-                />
-              </svg>
-
-              {canSign && (
-                <motion.span
-                  animate={{ opacity: [0.35, 1, 0.35] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute inset-x-0 -bottom-6 text-center text-[11px] font-black text-yellow-700 print:hidden"
-                >
-                  اضغط هنا لاعتماد الشهادة
-                </motion.span>
-              )}
-            </button>
-          </div>
+            {canSign && (
+              <motion.span
+                animate={{ opacity: [0.35, 1, 0.35] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute inset-x-0 -bottom-5 text-center text-[11px] font-black text-yellow-700 print:hidden"
+              >
+                اضغط هنا لاعتماد الشهادة
+              </motion.span>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -130,17 +132,28 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
 
   return (
     <>
+      {/* إعداد الصفحة + حركة الرسم (داخل الـ JSX حسب الطلب) */}
+      <style>{`
+        @keyframes draw {
+          from { stroke-dashoffset: 1000; }
+          to   { stroke-dashoffset: 0; }
+        }
+        @media print {
+          @page { size: landscape; margin: 8mm; }
+        }
+      `}</style>
+
       {/* نسخة الشاشة */}
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full"
+        className="flex w-full justify-center"
       >
         {body}
       </motion.div>
 
-      {/* زر التصدير — خارج حدود الشهادة، للفائز فقط بعد التوقيع */}
+      {/* زر التصدير — خارج حدود الشهادة، للفائز فقط */}
       {signed && isCurrentPlayerWinner && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
