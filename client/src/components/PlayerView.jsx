@@ -768,44 +768,57 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'finished') {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
-          <span className="mb-3 inline-block text-5xl">
-            {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
-          </span>
-          <p className="font-display text-2xl font-black text-stone-800">
-            {myRank === 1 ? 'مبروك! المركز الأول' : 'انتهت المسابقة'}
-          </p>
-          <p className="mt-2 text-sm text-stone-500">
-            مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
-          </p>
-
-          {/* شهادة الفائز — مرئية للجميع */}
-          {victoryWinner && (
-            <div className="mt-6">
-              <Certificate
-                winnerName={victoryWinner.name}
-                isCurrentPlayerWinner={playerId === victoryWinner.id}
-              />
-            </div>
-          )}
-
-          <div className="mt-5 space-y-1.5">
-            {sortedPlayers.slice(0, 4).map((item, index) => (
-              <div
-                key={item.id}
-                className={cx(
-                  'flex items-center gap-3 rounded-xl px-3 py-2',
-                  item.id === playerId ? 'bg-honey-100' : 'bg-stone-50'
-                )}
-              >
-                <span className="w-5 text-sm font-black text-stone-400">{index + 1}</span>
-                <Avatar player={item} size="xs" />
-                <span className="flex-1 truncate text-sm font-bold text-stone-700">{item.name}</span>
-                <span className="font-display font-black text-stone-800">{item.score}</span>
-              </div>
-            ))}
+        <div className="w-full">
+          {/* ترويسة النهاية */}
+          <div className="mb-4 text-center">
+            <span className="mb-3 inline-block text-5xl">
+              {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
+            </span>
+            <p className="font-display text-2xl font-black text-stone-800 md:text-3xl">
+              {myRank === 1 ? 'مبروك! المركز الأول' : 'انتهت المسابقة'}
+            </p>
+            <p className="mt-2 text-sm text-stone-500">
+              مركزك <span className="font-black text-stone-800">{myRank ?? '-'}</span> من {players.length}
+            </p>
           </div>
-        </Card>
+
+          {/* الشهادة + النتائج جنباً إلى جنب على الشاشات الكبيرة */}
+          <div className="flex flex-col lg:flex-row items-start justify-center gap-8 w-full max-w-7xl mx-auto p-4">
+            {/* الشهادة */}
+            <div className="w-full lg:w-2/3 flex justify-center order-1 lg:order-2 print:block print:w-full">
+              {victoryWinner && (
+                <Certificate
+                  winnerName={victoryWinner.name}
+                  isCurrentPlayerWinner={playerId === victoryWinner.id}
+                />
+              )}
+            </div>
+
+            {/* النتائج النهائية */}
+            <div className="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-md border border-gray-100 order-2 lg:order-1 print:hidden">
+              <p className="mb-4 text-center font-display text-lg font-black text-stone-800">
+                النتائج النهائية
+              </p>
+
+              <div className="space-y-1.5">
+                {sortedPlayers.slice(0, 4).map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={cx(
+                      'flex items-center gap-3 rounded-xl px-3 py-2',
+                      item.id === playerId ? 'bg-honey-100' : 'bg-stone-50'
+                    )}
+                  >
+                    <span className="w-5 text-sm font-black text-stone-400">{index + 1}</span>
+                    <Avatar player={item} size="xs" />
+                    <span className="flex-1 truncate text-sm font-bold text-stone-700">{item.name}</span>
+                    <span className="font-display font-black text-stone-800">{item.score}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       );
     }
 
