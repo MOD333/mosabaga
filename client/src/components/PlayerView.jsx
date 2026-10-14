@@ -477,7 +477,7 @@ export default function PlayerView({ playerId, onExit }) {
   /* ---------------------- محتوى الحالة ---------------------- */
   /* ---------------------- تحدي التيربو ---------------------- */
   const handleTurboClick = () => {
-    const newPoints = turboPoints + 0.25;
+    const newPoints = turboPoints + 0.10;
     setTurboPoints(newPoints);
     socket.emit('turbo-score-update', { points: newPoints });
   };
@@ -598,7 +598,7 @@ export default function PlayerView({ playerId, onExit }) {
           className="w-64 h-64 bg-gradient-to-br from-red-500 to-orange-600 rounded-full shadow-[0_0_50px_rgba(239,68,68,0.6)] active:scale-90 active:bg-orange-700 transition-transform duration-75 flex flex-col items-center justify-center text-white font-black text-5xl border-8 border-red-300 select-none"
         >
           اضغط!
-          <span className="text-xl mt-2 font-normal">النقاط: {turboPoints}</span>
+          <span className="text-xl mt-2 font-normal">النقاط: {turboPoints.toFixed(2)}</span>
         </button>
       );
     }

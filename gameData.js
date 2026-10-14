@@ -62,7 +62,7 @@ export const gameData = [
   { category: "الكلمة الشاذة", type: "text", question: "ون بيس، ناروتو، بليتش، باتمان", answer: "باتمان (كوميكس أمريكي، الباقي أنمي)", timeLimit: 5 },
 
   // ---------- تحدي التيربو ----------
-  { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.25 نقطة)", timeLimit: 10 },
+  { category: "تحدي التيربو", type: "turbo", question: "اضغط على الزر بأسرع ما يمكن! (النقرة = 0.10 نقطة)", timeLimit: 10 },
 
   // ---------- فك التشفير ----------
   { category: "فك التشفير", type: "scramble", question: "رتب الحروف واكتب الكلمة بأسرع وقت!", scrambled: "ي ش ب ت ن ا ل س ي", answer: "بلايستيشن", timeLimit: 20 },

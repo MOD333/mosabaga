@@ -639,7 +639,7 @@ export default function HostView({ onExit }) {
                                   onClick={() => adjustScore(playerId, score)}
                                   className="bg-orange-500 text-white font-bold py-1 px-3 rounded-lg ml-4"
                                 >
-                                  إعطاء {score} نقطة ⚡
+                                  إعطاء {Number(score).toFixed(2)} نقطة ⚡
                                 </button>
                               </div>
                             ))}
