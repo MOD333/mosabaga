@@ -44,6 +44,8 @@ export default function PlayerView({ playerId, onExit }) {
   const [scrambleSolved, setScrambleSolved] = useState(false);
   // الحسبة الخاطفة
   const [mathSolved, setMathSolved] = useState(false);
+  // محاولة خاطئة واحدة = قفل (للحسبة وفك التشفير)
+  const [hasFailed, setHasFailed] = useState(false);
   // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
@@ -380,6 +382,7 @@ export default function PlayerView({ playerId, onExit }) {
     setScrambleInput('');
     setScrambleSolved(false);
     setMathSolved(false);
+    setHasFailed(false);
   }, [state?.questionIndex]);
 
   /* ---------------------- الضغط ---------------------- */
@@ -482,16 +485,26 @@ export default function PlayerView({ playerId, onExit }) {
   /* ---------------------- فك التشفير ---------------------- */
   const handleScrambleSubmit = (event) => {
     event.preventDefault();
-    if (scrambleInput.trim() !== state?.question?.answer || scrambleSolved) return;
-    setScrambleSolved(true);
-    socket.emit('scramble-win');
+    if (scrambleSolved || hasFailed) return;
+
+    if (scrambleInput.trim() === state?.question?.answer) {
+      setScrambleSolved(true);
+      socket.emit('scramble-win');
+    } else {
+      setHasFailed(true);
+    }
   };
 
   /* ---------------------- الحسبة الخاطفة ---------------------- */
   const handleMathOption = (opt) => {
-    if (mathSolved || opt !== state?.question?.answer) return;
-    setMathSolved(true);
-    socket.emit('math-win', { points: state?.question?.points });
+    if (mathSolved || hasFailed) return;
+
+    if (opt === state?.question?.answer) {
+      setMathSolved(true);
+      socket.emit('math-win', { points: state?.question?.points });
+    } else {
+      setHasFailed(true);
+    }
   };
 
   const statusCard = () => {
@@ -513,19 +526,26 @@ export default function PlayerView({ playerId, onExit }) {
           {mathSolved ? (
             <p className="font-display text-2xl font-black text-sage-600 md:text-3xl">✅ صح! أنت الأسرع 🏆</p>
           ) : (
-            <div className="grid w-full grid-cols-2 gap-4">
-              {(math.options || []).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => handleMathOption(opt)}
-                  dir="ltr"
-                  className="rounded-2xl border-2 border-stone-200 bg-white py-6 font-display text-3xl font-black text-stone-800 transition-colors hover:border-honey-400 hover:bg-honey-50 active:scale-95"
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="grid w-full grid-cols-2 gap-4">
+                {(math.options || []).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleMathOption(opt)}
+                    disabled={mathSolved || hasFailed}
+                    dir="ltr"
+                    className={`rounded-2xl border-2 border-stone-200 bg-white py-6 font-display text-3xl font-black text-stone-800 transition-colors hover:border-honey-400 hover:bg-honey-50 active:scale-95 ${hasFailed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              {hasFailed && (
+                <div className="text-red-600 font-bold text-2xl mt-6 animate-pulse">إجابة خاطئة ❌ (تم قفل الإجابة)</div>
+              )}
+            </>
           )}
         </div>
       );
@@ -542,21 +562,29 @@ export default function PlayerView({ playerId, onExit }) {
           {scrambleSolved ? (
             <p className="font-display text-2xl font-black text-sage-600 md:text-3xl">✅ صح! أنت الأول 🏆</p>
           ) : (
-            <form onSubmit={handleScrambleSubmit} className="flex w-full max-w-md flex-col gap-3">
-              <input
-                value={scrambleInput}
-                onChange={(event) => setScrambleInput(event.target.value)}
-                placeholder="اكتب الكلمة…"
-                autoComplete="off"
-                className="w-full rounded-xl border-2 border-stone-200 bg-white p-4 text-center text-2xl font-bold text-stone-800 outline-none transition-colors placeholder:text-base placeholder:font-normal placeholder:text-stone-400 focus:border-honey-400"
-              />
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-honey-300 py-3 font-display text-lg font-black text-honey-800 transition-colors hover:bg-honey-400"
-              >
-                إرسال
-              </button>
-            </form>
+            <>
+              <form onSubmit={handleScrambleSubmit} className="flex w-full max-w-md flex-col gap-3">
+                <input
+                  value={scrambleInput}
+                  onChange={(event) => setScrambleInput(event.target.value)}
+                  placeholder="اكتب الكلمة…"
+                  autoComplete="off"
+                  disabled={hasFailed || scrambleSolved}
+                  className={`w-full rounded-xl border-2 border-stone-200 bg-white p-4 text-center text-2xl font-bold text-stone-800 outline-none transition-colors placeholder:text-base placeholder:font-normal placeholder:text-stone-400 focus:border-honey-400 ${hasFailed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                />
+                <button
+                  type="submit"
+                  disabled={hasFailed || scrambleSolved}
+                  className={`w-full rounded-xl bg-honey-300 py-3 font-display text-lg font-black text-honey-800 transition-colors hover:bg-honey-400 ${hasFailed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  إرسال
+                </button>
+              </form>
+
+              {hasFailed && (
+                <div className="text-red-600 font-bold text-2xl mt-6 animate-pulse">إجابة خاطئة ❌ (تم قفل الإجابة)</div>
+              )}
+            </>
           )}
         </div>
       );
