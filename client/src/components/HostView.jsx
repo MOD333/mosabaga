@@ -710,10 +710,10 @@ export default function HostView({ onExit }) {
                                 </span>
                                 <span className="font-display text-lg font-black text-green-600">{score}</span>
                                 <button
-                                  onClick={() => adjustScore(playerId, 5)}
-                                  className="bg-green-600 text-white py-2 px-4 rounded-xl font-bold mr-auto"
+                                  onClick={() => adjustScore(playerId, score)}
+                                  className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-xl font-bold mr-auto"
                                 >
-                                  إعطاء 5 نقاط 🏆
+                                  إعطاء {Number(score).toFixed(2)} نقطة 🎯
                                 </button>
                               </div>
                             ))}

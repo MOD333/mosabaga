@@ -576,7 +576,7 @@ export default function PlayerView({ playerId, onExit }) {
           <div className="relative w-full h-72 bg-gray-100 rounded-3xl overflow-hidden border-4 border-gray-300">
             <button
               onClick={(e) => {
-                const newScore = aimScore + 1;
+                const newScore = aimScore + 0.20;
                 setAimScore(newScore);
                 socket.emit('aim-score-update', { score: newScore });
                 e.target.style.top = Math.random() * 80 + '%';
@@ -586,7 +586,7 @@ export default function PlayerView({ playerId, onExit }) {
               style={{ top: '40%', left: '40%' }}
             />
           </div>
-          <p className="mt-4 font-display text-2xl font-black text-stone-800">النقاط: {aimScore}</p>
+          <div className="text-2xl font-bold mt-4 text-center">النقاط: {aimScore.toFixed(2)}</div>
         </div>
       );
     }
