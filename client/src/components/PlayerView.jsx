@@ -730,7 +730,7 @@ export default function PlayerView({ playerId, onExit }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full max-w-[1400px] mx-auto items-start p-2 sm:p-4">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 w-full max-w-[1600px] mx-auto items-center xl:items-start p-2 sm:p-4">
             
             <div className="col-span-1 xl:col-span-8 w-full flex justify-center order-1 xl:order-2 overflow-visible">
               {victoryWinner && (
