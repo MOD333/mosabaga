@@ -799,9 +799,9 @@ export default function PlayerView({ playerId, onExit }) {
           </div>
 
           {/* لوحة النهاية: الشهادة يساراً + الترتيب يميناً */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-[1400px] mx-auto items-start p-4 md:p-8 min-h-screen overflow-hidden">
-            {/* الشهادة — المساحة الأكبر */}
-            <div className="col-span-1 lg:col-span-8 w-full flex justify-center order-1 lg:order-2">
+          <div className="grid w-full max-w-[1400px] mx-auto grid-cols-1 lg:grid-cols-[7fr_3fr] gap-6 items-start p-4 md:p-6">
+            {/* الشهادة — 70% يسار */}
+            <div className="col-span-1 w-full min-w-0 flex justify-center order-1 lg:order-2">
               {victoryWinner && (
                 <Certificate
                   winnerName={victoryWinner.name}
@@ -811,7 +811,7 @@ export default function PlayerView({ playerId, onExit }) {
             </div>
 
             {/* الترتيب النهائي — لوحة مساندة */}
-            <aside className="col-span-1 lg:col-span-4 w-full bg-white p-6 rounded-3xl shadow-xl border border-yellow-100 order-2 lg:order-1 sticky top-6 print:hidden">
+            <aside className="col-span-1 w-full min-w-0 bg-white p-6 rounded-3xl shadow-xl border border-yellow-100 order-2 lg:order-1 sticky top-6 print:hidden">
               <h2 className="mb-5 text-center font-display text-xl font-black text-stone-800 md:text-2xl">
                 الترتيب النهائي 🏆
               </h2>
