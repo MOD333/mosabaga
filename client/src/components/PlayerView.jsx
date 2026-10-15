@@ -116,17 +116,21 @@ export default function PlayerView({ playerId, onExit }) {
       });
     };
 
+    const onReplaced = () => setReplaced(true);
+    const onDisconnect = () => setConnected(false);
+    const onConnect = () => setConnected(true);
+
     identify();
     socket.on('connect', identify);
-    socket.on('player:replaced', () => setReplaced(true));
-    socket.on('disconnect', () => setConnected(false));
-    socket.on('connect', () => setConnected(true));
+    socket.on('player:replaced', onReplaced);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect', onConnect);
 
     return () => {
       socket.off('connect', identify);
-      socket.off('player:replaced');
-      socket.off('disconnect');
-      socket.off('connect');
+      socket.off('player:replaced', onReplaced);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect', onConnect);
       socket.emit('player:leave');
     };
   }, [playerId]);

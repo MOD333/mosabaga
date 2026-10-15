@@ -228,6 +228,15 @@ export default function HostView({ onExit }) {
       });
     };
 
+    // لوحة الأصوات — المضيف يسمعها أيضاً
+    const onPlaySound = (payload) => {
+      try {
+        const audio = new Audio(`/sounds/${payload?.sound}.mp3`);
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    };
+
     // تحدي التيربو — نقاط مباشرة لكل لاعب
     const onTurboScore = (payload) => {
       if (!payload?.playerId) return;
@@ -274,6 +283,7 @@ export default function HostView({ onExit }) {
     socket.on('game:hard_reset', onHardReset);
     socket.on('game:forced-end', onForcedEnd);
     socket.on('game:break-state', onBreakState);
+    socket.on('game:play-sound', onPlaySound);
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
     socket.on('answer:expired', onAnswerExpired);
@@ -305,6 +315,7 @@ export default function HostView({ onExit }) {
       socket.off('game:hard_reset', onHardReset);
       socket.off('game:forced-end', onForcedEnd);
       socket.off('game:break-state', onBreakState);
+      socket.off('game:play-sound', onPlaySound);
       socket.off('answer:tick', onAnswerTick);
       socket.off('answer:started', onAnswerStarted);
       socket.off('answer:expired', onAnswerExpired);
@@ -1296,7 +1307,7 @@ export default function HostView({ onExit }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-              className="clip-corner w-56 rounded-2xl border border-amber-200 bg-white p-3 shadow-2xl"
+              className="w-56 rounded-2xl border border-amber-200 bg-white p-3 shadow-2xl"
             >
               <p className="mb-2 text-center text-[11px] font-black tracking-wide text-stone-500">
                 🎛️ لوحة الأصوات

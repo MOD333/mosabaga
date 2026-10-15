@@ -472,6 +472,7 @@ io.on('connection', (socket) => {
     if (!playerId) return respond(ack, { ok: false, reason: 'unknown-player' });
     if (isIntro(game.questionIndex)) return respond(ack, { ok: false, reason: 'intro' });
     if (!game.isQuestionRevealed) return respond(ack, { ok: false, reason: 'not-revealed' });
+    if (game.break.active) return respond(ack, { ok: false, reason: 'break' });
     if (game.phase === 'finished' || game.phase === 'lobby') {
       return respond(ack, { ok: false, reason: 'inactive' });
     }
@@ -543,6 +544,9 @@ io.on('connection', (socket) => {
     if (!playerId) return;
     if (isIntro(game.questionIndex)) return;
     if (gameData[game.questionIndex]?.type !== 'reaction') return; // مخصّص لهذه اللعبة فقط
+    if (!game.isQuestionRevealed) return; // لا فوز قبل عرض السؤال
+    if (game.phase === 'lobby' || game.phase === 'finished') return; // اللعبة ليست جارية
+    if (game.break.active) return; // لا فوز أثناء الاستراحة
     if (game.reactionWon) return; // أول لاعب فقط
 
     game.reactionWon = true;
@@ -681,6 +685,7 @@ io.on('connection', (socket) => {
   socket.on('host:startTimer', () => {
     withHost(socket, () => {
       if (game.phase === 'finished') return;
+      if (game.break.active) return; // لا مؤقّت أثناء الاستراحة
       if (game.phase === 'lobby') loadQuestion(0);
       if (isIntro(game.questionIndex)) return; // الفقرة التمهيدية بلا مؤقّت
       if (!game.isQuestionRevealed) return; // ممنوع قبل عرض السؤال
@@ -818,16 +823,23 @@ io.on('connection', (socket) => {
     withHost(socket, () => {
       const active = Boolean(payload?.active);
       const reason = active
-        ? String(payload?.reason || '').trim().slice(0, 120) || 'استراحة'
+        ? String(payload?.reason || '').trim().slice(0, 60) || 'استراحة'
         : '';
 
       game.break = { active, reason };
 
-      // إيقاف المؤقت أثناء الاستراحة حتى لا ينتهي السؤال
-      if (active && game.timer.running) {
-        game.timer.remaining = remainingSeconds();
-        game.timer.running = false;
-        game.timer.endAt = 0;
+      if (active) {
+        // إيقاف المؤقت أثناء الاستراحة حتى لا ينتهي السؤال
+        if (game.timer.running) {
+          game.timer.remaining = remainingSeconds();
+          game.timer.running = false;
+          game.timer.endAt = 0;
+        }
+        // تجميد مهلة الإجابة (٣ ثوانٍ) حتى لا تنتهي خلف شاشة الاستراحة
+        if (game.answerWindow.active) clearAnswerWindow();
+      } else if (game.buzzedPlayerId && game.phase === 'buzzed') {
+        // استئناف مهلة الإجابة كاملة بعد انتهاء الاستراحة
+        startAnswerWindow();
       }
 
       io.emit('game:break-state', { active, reason });
@@ -837,7 +849,9 @@ io.on('connection', (socket) => {
 
   // ---------- لوحة أصوات المضيف (Soundboard) ----------
   socket.on('host:play-sound', (payload) => {
-    io.emit('game:play-sound', payload);
+    withHost(socket, () => {
+      io.emit('game:play-sound', { sound: String(payload?.sound || '').slice(0, 80) });
+    });
   });
 
   // ---------- أوامر لوحة الإدارة (Admin Panel) ----------
