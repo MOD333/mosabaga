@@ -798,9 +798,11 @@ export default function PlayerView({ playerId, onExit }) {
             </p>
           </div>
 
-          {/* لوحة النهاية: الشهادة يساراً + الترتيب يميناً */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-6xl mx-auto items-start p-4">
-            <div className="col-span-1 lg:col-span-8 w-full bg-[#fdfbf7] border-[12px] border-double border-yellow-600 outline outline-4 outline-offset-4 outline-yellow-800 p-8 md:p-12 min-h-[500px] flex flex-col items-center justify-center text-center shadow-2xl order-1 lg:order-2">
+          {/* لوحة النهاية: الشهادة يساراً + الترتيب يميناً بنظام Grid صارم لمنع الانكماش */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full max-w-[1400px] mx-auto items-start p-2 sm:p-4">
+            
+            {/* القسم الأيسر: الشهادة - تأخذ 8 أعمدة (حوالي 66%) وتكون واسعة */}
+            <div className="col-span-1 xl:col-span-8 w-full flex justify-center order-1 xl:order-2 overflow-visible">
               {victoryWinner && (
                 <Certificate
                   winnerName={victoryWinner.name}
@@ -809,8 +811,8 @@ export default function PlayerView({ playerId, onExit }) {
               )}
             </div>
 
-            {/* الترتيب النهائي — لوحة مساندة */}
-            <aside className="col-span-1 lg:col-span-4 w-full bg-white rounded-3xl shadow-xl border border-yellow-100 p-6 sticky top-6 order-2 lg:order-1 print:hidden">
+            {/* القسم الأيمن: الترتيب النهائي - يأخذ 4 أعمدة (حوالي 33%) */}
+            <aside className="col-span-1 xl:col-span-4 w-full bg-white rounded-3xl shadow-xl border border-yellow-100 p-6 sticky top-6 order-2 xl:order-1 print:hidden">
               <h2 className="mb-5 text-center font-display text-xl font-black text-stone-800 md:text-2xl">
                 الترتيب النهائي 🏆
               </h2>
@@ -855,6 +857,7 @@ export default function PlayerView({ playerId, onExit }) {
                 ))}
               </div>
             </aside>
+
           </div>
         </div>
       );
