@@ -41,6 +41,8 @@ export default function PlayerView({ playerId, onExit }) {
   const [reactionReady, setReactionReady] = useState(false);
   const [reactionWinnerName, setReactionWinnerName] = useState(null);
   const [aimScore, setAimScore] = useState(0);
+  // وضع الاستراحة
+  const [breakState, setBreakState] = useState({ active: false, reason: '' });
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
   const holdRef = useRef({ active: false, start: 0, timer: 0 });
@@ -136,6 +138,9 @@ export default function PlayerView({ playerId, onExit }) {
       setOptimistic(false);
       if (!next.answerWindowActive) setAnswerRemaining(0);
       setAnswerShownToAll(Boolean(next.answerRevealedToAll));
+      if (typeof next.breakActive === 'boolean') {
+        setBreakState({ active: next.breakActive, reason: next.breakReason || '' });
+      }
     };
 
     const onRevealAnswerToAll = (payload) => {
@@ -238,7 +243,13 @@ export default function PlayerView({ playerId, onExit }) {
     socket.on('warning', onWarning);
     socket.on('reveal_answer_to_all', onRevealAnswerToAll);
     socket.on('reaction-winner', onReactionWinner);
+    // وضع الاستراحة
+    const onBreakState = (payload) => {
+      setBreakState({ active: Boolean(payload?.active), reason: payload?.reason || '' });
+    };
+
     socket.on('game:forced-end', onForcedEnd);
+    socket.on('game:break-state', onBreakState);
 
     return () => {
       socket.off('game:state', onState);
@@ -260,6 +271,7 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('reveal_answer_to_all', onRevealAnswerToAll);
       socket.off('reaction-winner', onReactionWinner);
       socket.off('game:forced-end', onForcedEnd);
+      socket.off('game:break-state', onBreakState);
     };
   }, [playerId, notify, shake, playAlert]);
 
@@ -1319,6 +1331,19 @@ export default function PlayerView({ playerId, onExit }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ============ وضع الاستراحة — يغطي كل شيء ============ */}
+      {breakState?.active && (
+        <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-slate-900 px-6 text-center">
+          <div className="text-8xl md:text-9xl mb-8 animate-bounce">☕</div>
+          <h1 className="font-display text-5xl md:text-7xl font-black text-amber-400 mb-6 leading-tight">
+            {breakState.reason}
+          </h1>
+          <p className="text-xl md:text-2xl font-bold text-slate-300">
+            خذ لك بريك، اللعبة متوقفة حالياً...
+          </p>
+        </div>
+      )}
 
       <AnimatePresence>
         {phase === 'finished' && victoryWinner && !victoryDismissed && (

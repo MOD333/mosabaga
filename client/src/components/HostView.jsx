@@ -39,6 +39,10 @@ export default function HostView({ onExit }) {
   const [answerRemaining, setAnswerRemaining] = useState(0);
   // تحدي التيربو — نقاط مباشرة لكل لاعب
   const [liveTurboScores, setLiveTurboScores] = useState({});
+  // وضع الاستراحة
+  const [breakState, setBreakState] = useState({ active: false, reason: '' });
+  const [breakModalOpen, setBreakModalOpen] = useState(false);
+  const [breakReasonInput, setBreakReasonInput] = useState('');
   // فك التشفير — أول من يحل
   const [scrambleWinner, setScrambleWinner] = useState(null);
   // الحسبة الخاطفة — الأسرع
@@ -121,6 +125,9 @@ export default function HostView({ onExit }) {
       setState(next);
       if (!next.timerRunning) setRemaining(next.remaining);
       if (!next.answerWindowActive) setAnswerRemaining(0);
+      if (typeof next.breakActive === 'boolean') {
+        setBreakState({ active: next.breakActive, reason: next.breakReason || '' });
+      }
     };
 
     const onAnswerTick = (payload) => setAnswerRemaining(payload.remaining);
@@ -208,6 +215,17 @@ export default function HostView({ onExit }) {
       pushToast({ tone: 'coral', title: '🛑 تم إنهاء المسابقة فوراً', body: 'عرض النتائج النهائية' });
     };
 
+    // وضع الاستراحة
+    const onBreakState = (payload) => {
+      const active = Boolean(payload?.active);
+      setBreakState({ active, reason: payload?.reason || '' });
+      pushToast({
+        tone: active ? 'honey' : 'sage',
+        title: active ? '☕ وضع الاستراحة' : '▶️ عادت اللعبة',
+        body: active ? payload?.reason || '' : 'استئنف اللعب',
+      });
+    };
+
     // تحدي التيربو — نقاط مباشرة لكل لاعب
     const onTurboScore = (payload) => {
       if (!payload?.playerId) return;
@@ -253,6 +271,7 @@ export default function HostView({ onExit }) {
     socket.on('question:revealed', onQuestionRevealed);
     socket.on('game:hard_reset', onHardReset);
     socket.on('game:forced-end', onForcedEnd);
+    socket.on('game:break-state', onBreakState);
     socket.on('answer:tick', onAnswerTick);
     socket.on('answer:started', onAnswerStarted);
     socket.on('answer:expired', onAnswerExpired);
@@ -283,6 +302,7 @@ export default function HostView({ onExit }) {
       socket.off('question:revealed', onQuestionRevealed);
       socket.off('game:hard_reset', onHardReset);
       socket.off('game:forced-end', onForcedEnd);
+      socket.off('game:break-state', onBreakState);
       socket.off('answer:tick', onAnswerTick);
       socket.off('answer:started', onAnswerStarted);
       socket.off('answer:expired', onAnswerExpired);
@@ -313,6 +333,14 @@ export default function HostView({ onExit }) {
 
   function adjustScore(playerId, delta) {
     socket.emit('manual_score_update', { playerId, delta });
+  }
+
+  function startBreak() {
+    const reason = breakReasonInput.trim();
+    if (!reason) return;
+    socket.emit('host:toggle-break', { active: true, reason });
+    setBreakModalOpen(false);
+    setBreakReasonInput('');
   }
 
   function openWarnings() {
@@ -493,6 +521,24 @@ export default function HostView({ onExit }) {
             <span className="hidden sm:block">
               <ConnectionDot connected={connected} />
             </span>
+
+            {/* وضع الاستراحة */}
+            <button
+              type="button"
+              onClick={() =>
+                breakState.active
+                  ? send('host:toggle-break', { active: false, reason: '' })
+                  : setBreakModalOpen(true)
+              }
+              className={
+                breakState.active
+                  ? 'rounded-xl bg-coral-500 px-4 py-2 text-sm font-black text-white shadow-soft transition-colors hover:bg-coral-600'
+                  : 'rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-800 transition-colors hover:bg-amber-100'
+              }
+            >
+              {breakState.active ? 'إنهاء الاستراحة' : 'وضع الاستراحة ☕'}
+            </button>
+
             <button
               type="button"
               onClick={onExit}
@@ -1147,6 +1193,72 @@ export default function HostView({ onExit }) {
         onSend={sendWarning}
         onClose={() => setWarnOpen(false)}
       />
+
+      {/* ============ وضع الاستراحة — إدخال السبب ============ */}
+      <AnimatePresence>
+        {breakModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-stone-900/50 px-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+              className="w-full max-w-md"
+            >
+              <Card lg className="p-6">
+                <div className="text-center">
+                  <span className="text-4xl">☕</span>
+                  <h2 className="mt-2 font-display text-2xl font-black text-stone-800">وضع الاستراحة</h2>
+                  <p className="mt-1 text-xs font-bold text-stone-400">
+                    ستتوقف اللعبة عند جميع اللاعبين حتى إنهاء الاستراحة.
+                  </p>
+                </div>
+
+                <label className="mt-5 flex flex-col gap-2">
+                  <span className="text-[11px] font-bold text-stone-400">اكتب سبب الاستراحة:</span>
+                  <input
+                    value={breakReasonInput}
+                    onChange={(event) => setBreakReasonInput(event.target.value.slice(0, 60))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') startBreak();
+                    }}
+                    placeholder="مثال: بريك صلاة"
+                    className="rounded-2xl border border-stone-200 bg-stone-50/70 px-4 py-3 text-sm font-bold text-stone-800 outline-none transition-colors placeholder:font-normal placeholder:text-stone-400 focus:border-amber-400"
+                  />
+                </label>
+
+                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+                  <SoftButton
+                    variant="primary"
+                    size="lg"
+                    className="flex-1 justify-center"
+                    disabled={!breakReasonInput.trim()}
+                    onClick={startBreak}
+                  >
+                    ☕ ابدأ الاستراحة
+                  </SoftButton>
+                  <SoftButton
+                    variant="ghost"
+                    size="lg"
+                    className="justify-center sm:w-28"
+                    onClick={() => {
+                      setBreakModalOpen(false);
+                      setBreakReasonInput('');
+                    }}
+                  >
+                    إلغاء
+                  </SoftButton>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ============ الإشعارات ============ */}
       <div className="pointer-events-none fixed inset-x-0 top-24 z-50 flex flex-col items-center gap-2 px-4">

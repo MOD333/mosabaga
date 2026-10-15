@@ -66,6 +66,8 @@ const game = {
   answerRevealedToAll: false,
   // أسرع رد فعل — أول لاعب يفوز مباشرة (علم لكل سؤال)
   reactionWon: false,
+  // وضع الاستراحة (يوقف كل شيء عند اللاعبين)
+  break: { active: false, reason: '' },
   // نظام الإنذارات
   warningCounts: Object.fromEntries(PLAYERS.map((player) => [player.id, 0])),
   activeWarnings: {}, // playerId -> { id, reason, at }
@@ -244,6 +246,9 @@ function buildState() {
     buzzedPlayerName: game.buzzedPlayerId ? nameOf(game.buzzedPlayerId) : null,
     answerRevealed: game.answerRevealed,
     answerRevealedToAll: game.answerRevealedToAll,
+    // وضع الاستراحة — ليستقبله أي جهاز جديد فوراً
+    breakActive: game.break.active,
+    breakReason: game.break.reason,
     lastAward: game.lastAward,
     winner:
       game.phase === 'finished' && top
@@ -804,6 +809,28 @@ io.on('connection', (socket) => {
       clearAnswerWindow();
 
       io.emit('game:forced-end');
+      broadcastState();
+    });
+  });
+
+  // ---------- وضع الاستراحة (Break Mode) ----------
+  socket.on('host:toggle-break', (payload) => {
+    withHost(socket, () => {
+      const active = Boolean(payload?.active);
+      const reason = active
+        ? String(payload?.reason || '').trim().slice(0, 120) || 'استراحة'
+        : '';
+
+      game.break = { active, reason };
+
+      // إيقاف المؤقت أثناء الاستراحة حتى لا ينتهي السؤال
+      if (active && game.timer.running) {
+        game.timer.remaining = remainingSeconds();
+        game.timer.running = false;
+        game.timer.endAt = 0;
+      }
+
+      io.emit('game:break-state', { active, reason });
       broadcastState();
     });
   });
