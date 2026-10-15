@@ -32,19 +32,10 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
   const body = (
     <div
       className={cx(
-        // شكل A4 أفقي ثابت + overflow-hidden يمنع أي خروج عن الإطار
-        'relative w-full min-w-0 max-w-5xl overflow-hidden',
-        'aspect-[1.414/1] min-h-[440px] bg-[#fdfbf7] text-center',
-        // إطارات فاخرة
-        'border-[12px] border-double border-yellow-600',
-        'outline outline-4 outline-offset-4 outline-yellow-800',
-        'shadow-2xl',
-        // حشوة متجاوبة
-        'p-6 sm:p-8 md:p-10 lg:p-12',
-        // توزيع عمودي: التاج/العنوان أعلى، الشبكة أسفل
-        'flex flex-col items-center justify-between',
-        // الطباعة
-        'print:m-0 print:p-8 print:shadow-none print:border-[16px] print:outline-none'
+        // لا إطارات على الشاشة (الإطار في حاوية PlayerView)، وإطارات الطباعة لنسخة الـ Portal
+        'w-full min-w-0 flex flex-col items-center justify-center text-center',
+        'print:bg-[#fdfbf7] print:p-8 print:shadow-none',
+        'print:border-[12px] print:border-double print:border-yellow-600'
       )}
     >
       {/* زخارف الزوايا الذهبية */}
@@ -59,7 +50,7 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
 
         <h1
           className={cx(
-            'mt-2 max-w-full bg-gradient-to-b from-yellow-500 via-yellow-600 to-yellow-800',
+            'mt-2 w-full bg-gradient-to-b from-yellow-500 via-yellow-600 to-yellow-800',
             'bg-clip-text pb-1 font-black leading-tight tracking-wide text-transparent',
             'text-[clamp(1.1rem,2.9vw,2.65rem)]'
           )}
@@ -76,7 +67,7 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
       <div className="flex w-full min-w-0 flex-col items-center">
         <h2
           className={cx(
-            'max-w-full break-words px-2 pb-2 font-black leading-tight text-gray-900',
+            'w-full px-2 pb-2 font-black leading-tight text-gray-900 whitespace-nowrap',
             'border-b-4 border-yellow-500',
             'text-[clamp(1.4rem,4.2vw,3.6rem)]'
           )}
@@ -160,7 +151,7 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex w-full min-w-0 justify-center"
+        className="w-full min-w-0"
       >
         {body}
       </motion.div>
