@@ -33,15 +33,11 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
   const body = (
     <div
       className={cx(
-        // ورق عاجي + مقاس A4 أفقي (aspect-ratio حدّ أدنى فقط: يتمدد إن زاد المحتوى فلا يُقصّ)
-        'relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center',
-        'bg-[#fdfbf7] aspect-[1.414/1] text-center',
-        // إطارات فاخرة
+        'relative w-full max-w-5xl h-auto aspect-[1.414/1] min-h-[500px]',
+        'bg-[#fdfbf7] p-8 md:p-14',
         'border-[12px] border-double border-yellow-600',
         'outline outline-4 outline-offset-4 outline-yellow-800',
-        // حشوة متجاوبة تمنع الفيضان
-        'p-6 sm:p-12 md:p-16 shadow-2xl',
-        // الطباعة
+        'shadow-2xl flex flex-col justify-between items-center text-center',
         'print:m-0 print:p-8 print:shadow-none print:border-[16px] print:outline-none'
       )}
     >
@@ -71,9 +67,8 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
       {/* اسم الفائز — البطل */}
       <h2
         className={cx(
-          'mb-4 mt-4 max-w-full px-2 pb-2 font-black text-gray-900',
-          'border-b-4 border-yellow-500',
-          'text-4xl sm:text-5xl md:text-6xl break-words'
+          'text-4xl md:text-6xl lg:text-7xl font-black text-gray-900',
+          'border-b-4 border-yellow-500 pb-2 mb-4 whitespace-nowrap'
         )}
       >
         {winnerName || '—'}
@@ -85,7 +80,7 @@ export default function Certificate({ winnerName, isCurrentPlayerWinner = false 
       </p>
 
       {/* الشبكة السفلية */}
-      <div className="mt-8 grid w-full grid-cols-2 gap-8 border-t border-gray-200/50 pt-6 text-right md:mt-12 md:pt-8">
+      <div className="grid grid-cols-2 gap-8 w-full mt-auto pt-8 border-t-2 border-gray-200 text-right">
         {/* تاريخ الإصدار (يمين في RTL) */}
         <div className="flex flex-col items-start gap-1">
           <span className="text-xs font-bold text-gray-400 sm:text-sm">تاريخ الإصدار</span>
