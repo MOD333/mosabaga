@@ -84,7 +84,15 @@ export const gameData = [
   { category: "أسرع رد فعل", type: "reaction", question: "خلك جاهز.. أول ما يخضر اضغط!", timeLimit: 15 },
   // ---------- صيد الهدف ----------
   { type: "intro", title: "شرح: صيد الهدف 🎯", description: "هدف أحمر بيتحرك عشوائياً. صيده (اضغط عليه) أكبر عدد ممكن من المرات خلال 10 ثواني! (كل صيدة = 0.20 نقطة)." },
-  { category: "صيد الهدف", type: "aim", question: "صِد الهدف بأكبر عدد ممكن! (10 ثواني)", timeLimit: 10 }
+  { category: "صيد الهدف", type: "aim", question: "صِد الهدف بأكبر عدد ممكن! (10 ثواني)", timeLimit: 10 },
+
+  // ---------- جيبها من البيت ----------
+  { type: "intro", title: "تحدي: جيبها من البيت 🏃‍♂️", description: "جهز لياقتك! بيطلع لك اسم غرض موجود في كل بيت. اركض جيبه، وريه للكاميرا، واضغط الجرس أول واحد عشان تفوز بالنقطة!" },
+  { type: "scavenger", category: "جيبها من البيت 🏃‍♂️", question: "ريموت (مكيف أو تلفزيون) 📺" },
+  { type: "scavenger", category: "جيبها من البيت 🏃‍♂️", question: "ملعقة (مو بلاستيك) 🥄" },
+  { type: "scavenger", category: "جيبها من البيت 🏃‍♂️", question: "شاحن جوال (سلك أو فيش) 🔌" },
+  { type: "scavenger", category: "جيبها من البيت 🏃‍♂️", question: "عطر أو بخاخ 💨" },
+  { type: "scavenger", category: "جيبها من البيت 🏃‍♂️", question: "مفتاح (سيارة أو باب) 🔑" }
 ];
 
 export default gameData;

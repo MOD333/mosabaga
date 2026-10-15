@@ -991,7 +991,17 @@ export default function PlayerView({ playerId, onExit }) {
               <p className="mb-3 text-[11px] font-bold tracking-[0.2em] text-stone-400">السؤال</p>
             )}
 
-            {state.question.type === 'emoji' ? (
+            {state.question.type === 'scavenger' ? (
+              <div className="text-center w-full px-2">
+                <div className="text-6xl mb-4 animate-bounce">🏃‍♂️</div>
+                <p className="font-display text-4xl md:text-5xl lg:text-7xl font-black text-stone-900 leading-relaxed mb-6">
+                  {state.question.question}
+                </p>
+                <p className="text-lg md:text-2xl font-bold text-coral-600 animate-pulse mt-4 bg-coral-50 py-3 px-6 rounded-2xl border-2 border-coral-200 inline-block w-max max-w-full">
+                  اركض جيبها.. وريها الكاميرا.. واضغط الجرس! 📸
+                </p>
+              </div>
+            ) : state.question.type === 'emoji' ? (
               <div className="text-center text-[3.75rem] leading-tight tracking-widest md:text-8xl">
                 {state.question.question}
               </div>
