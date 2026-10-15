@@ -248,8 +248,18 @@ export default function PlayerView({ playerId, onExit }) {
       setBreakState({ active: Boolean(payload?.active), reason: payload?.reason || '' });
     };
 
+    // لوحة الأصوات
+    const onPlaySound = (payload) => {
+      try {
+        const audio = new Audio(`/sounds/${payload.sound}.mp3`);
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    };
+
     socket.on('game:forced-end', onForcedEnd);
     socket.on('game:break-state', onBreakState);
+    socket.on('game:play-sound', onPlaySound);
 
     return () => {
       socket.off('game:state', onState);
@@ -272,6 +282,7 @@ export default function PlayerView({ playerId, onExit }) {
       socket.off('reaction-winner', onReactionWinner);
       socket.off('game:forced-end', onForcedEnd);
       socket.off('game:break-state', onBreakState);
+      socket.off('game:play-sound', onPlaySound);
     };
   }, [playerId, notify, shake, playAlert]);
 

@@ -835,6 +835,11 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ---------- لوحة أصوات المضيف (Soundboard) ----------
+  socket.on('host:play-sound', (payload) => {
+    io.emit('game:play-sound', payload);
+  });
+
   // ---------- أوامر لوحة الإدارة (Admin Panel) ----------
 
   socket.on('manual_score_update', (payload, ack) => {

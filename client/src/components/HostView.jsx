@@ -43,6 +43,8 @@ export default function HostView({ onExit }) {
   const [breakState, setBreakState] = useState({ active: false, reason: '' });
   const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [breakReasonInput, setBreakReasonInput] = useState('');
+  // لوحة الأصوات
+  const [isSoundboardOpen, setIsSoundboardOpen] = useState(false);
   // فك التشفير — أول من يحل
   const [scrambleWinner, setScrambleWinner] = useState(null);
   // الحسبة الخاطفة — الأسرع
@@ -1283,6 +1285,116 @@ export default function HostView({ onExit }) {
             </motion.div>
           ))}
         </AnimatePresence>
+      </div>
+
+      {/* ============ لوحة الأصوات العائمة (FAB) ============ */}
+      <div className="fixed bottom-24 left-4 z-[80] flex flex-col items-start gap-3 print:hidden">
+        <AnimatePresence>
+          {isSoundboardOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              className="clip-corner w-56 rounded-2xl border border-amber-200 bg-white p-3 shadow-2xl"
+            >
+              <p className="mb-2 text-center text-[11px] font-black tracking-wide text-stone-500">
+                🎛️ لوحة الأصوات
+              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'true-sound-effect' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-sage-100 px-3 py-2 text-sm font-bold text-sage-800 transition-colors hover:bg-sage-200"
+                >
+                  إجابة صحيحة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'swt-lrhmh' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-stone-100 px-3 py-2 text-sm font-bold text-stone-700 transition-colors hover:bg-stone-200"
+                >
+                  صوت الرحمة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'wrong-answer-sound-effect' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-coral-100 px-3 py-2 text-sm font-bold text-coral-800 transition-colors hover:bg-coral-200"
+                >
+                  إجابة خاطئة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'dictator-mbappe-meme' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-stone-100 px-3 py-2 text-sm font-bold text-stone-700 transition-colors hover:bg-stone-200"
+                >
+                  الدكتاتور
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'my-video1_KRP2y6Q' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-stone-100 px-3 py-2 text-sm font-bold text-stone-700 transition-colors hover:bg-stone-200"
+                >
+                  اسكت الله يخرب
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'among-us-role-reveal-sound' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-stone-100 px-3 py-2 text-sm font-bold text-stone-700 transition-colors hover:bg-stone-200"
+                >
+                  سوس امونق
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'dry-fart' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-honey-100 px-3 py-2 text-sm font-bold text-honey-800 transition-colors hover:bg-honey-200"
+                >
+                  طقعه
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    socket.emit('host:play-sound', { sound: 'bw-byr-y-mjnwn' });
+                    setIsSoundboardOpen(false);
+                  }}
+                  className="rounded-xl bg-sky-100 px-3 py-2 text-sm font-bold text-sky-800 transition-colors hover:bg-sky-200"
+                >
+                  يامجنوووون
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          type="button"
+          onClick={() => setIsSoundboardOpen((open) => !open)}
+          className="rounded-2xl bg-stone-900 px-4 py-3 text-sm font-black text-amber-400 shadow-2xl ring-1 ring-amber-500/40 transition-colors hover:bg-stone-800"
+        >
+          🎛️ الأصوات
+        </button>
       </div>
     </motion.div>
   );
