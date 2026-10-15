@@ -26,33 +26,21 @@ export default function PlayerView({ playerId, onExit }) {
   const [optimistic, setOptimistic] = useState(false);
   const [replaced, setReplaced] = useState(false);
   const [toast, setToast] = useState(null);
-  // فرق النقاط في الجولة الأخيرة (لعرض "+X")
   const [scoreDelta, setScoreDelta] = useState(0);
   const prevScoreRef = useRef(null);
-  // إخفاء شاشة الفوز يدوياً
   const [victoryDismissed, setVictoryDismissed] = useState(false);
-  // مهلة الإجابة (٣ ثوانٍ)
   const [answerRemaining, setAnswerRemaining] = useState(0);
-  // كشف الإجابة للجميع
   const [answerShownToAll, setAnswerShownToAll] = useState(false);
   const [revealedAnswer, setRevealedAnswer] = useState(null);
-  // فقرة الذاكرة (ركز زين): مرحلة الصورة ثم مرحلة السؤال
   const [memoryPhase, setMemoryPhase] = useState('image');
-  // تحدي التيربو — كل نقرة = ٠.٢٥ نقطة
   const [turboPoints, setTurboPoints] = useState(0);
-  // فك التشفير
   const [scrambleInput, setScrambleInput] = useState('');
   const [scrambleSolved, setScrambleSolved] = useState(false);
-  // الحسبة الخاطفة
   const [mathSolved, setMathSolved] = useState(false);
-  // محاولة خاطئة واحدة = قفل (للحسبة وفك التشفير)
   const [hasFailed, setHasFailed] = useState(false);
-  // أسرع رد فعل
   const [reactionReady, setReactionReady] = useState(false);
   const [reactionWinnerName, setReactionWinnerName] = useState(null);
-  // صيد الهدف
   const [aimScore, setAimScore] = useState(0);
-  // نظام الإنذارات
   const [warning, setWarning] = useState(null);
   const [holdPct, setHoldPct] = useState(0);
   const holdRef = useRef({ active: false, start: 0, timer: 0 });
@@ -60,7 +48,6 @@ export default function PlayerView({ playerId, onExit }) {
   const buzzLock = useRef(false);
   const shake = useAnimation();
 
-  /* ---------------------- إشعار مؤقت ---------------------- */
   const notify = useCallback((message, tone_ = 'neutral') => {
     const next = { message, tone: tone_, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` };
     setToast(next);
@@ -68,8 +55,6 @@ export default function PlayerView({ playerId, onExit }) {
       setToast((current) => (current && current.id === next.id ? null : current));
     }, 2400);
   }, []);
-
-  /* ---------------------- الإنذارات (اضغط مطوّلاً ٥ ثوانٍ) ---------------------- */
 
   const playAlert = useCallback(() => {
     try {
@@ -93,7 +78,7 @@ export default function PlayerView({ playerId, onExit }) {
     holdRef.current.active = false;
     if (holdRef.current.timer) clearInterval(holdRef.current.timer);
     holdRef.current.timer = 0;
-    setHoldPct(0); // الإفلات قبل ٥ ثوانٍ = العودة للصفر فوراً
+    setHoldPct(0);
   }, []);
 
   const beginHold = useCallback(() => {
@@ -101,8 +86,6 @@ export default function PlayerView({ playerId, onExit }) {
     holdRef.current.active = true;
     holdRef.current.start = performance.now();
 
-    // نعتمد على الوقت الفعلي (performance.now) لذا يبقى التقدّم صحيحاً
-    // حتى لو أخّر المتصفح المؤقّت (تبويب في الخلفية مثلاً).
     holdRef.current.timer = window.setInterval(() => {
       if (!holdRef.current.active) return;
 
@@ -121,7 +104,6 @@ export default function PlayerView({ playerId, onExit }) {
     }, 16);
   }, []);
 
-  /* ---------------------- تعريف الهوية ---------------------- */
   useEffect(() => {
     const identify = () => {
       socket.emit('player:identify', { playerId }, (response) => {
@@ -147,7 +129,6 @@ export default function PlayerView({ playerId, onExit }) {
     };
   }, [playerId]);
 
-  /* ---------------------- أحداث اللعبة ---------------------- */
   useEffect(() => {
     const onState = (next) => {
       setState(next);
@@ -157,7 +138,6 @@ export default function PlayerView({ playerId, onExit }) {
       setAnswerShownToAll(Boolean(next.answerRevealedToAll));
     };
 
-    // كشف الإجابة للجميع (حتى لو لم يضغط أحد الجرس)
     const onRevealAnswerToAll = (payload) => {
       setAnswerShownToAll(true);
       if (payload?.answer) setRevealedAnswer(payload.answer);
@@ -167,25 +147,20 @@ export default function PlayerView({ playerId, onExit }) {
 
     const onAnswerTick = (payload) => setAnswerRemaining(payload.remaining);
     const onAnswerStarted = (payload) => setAnswerRemaining(payload.duration);
-
     const onTick = (payload) => setRemaining(payload.remaining);
-
     const onStarted = (payload) => {
       setOptimistic(false);
       setRemaining(payload.remaining);
       sound.unlock();
       sound.start();
     };
-
     const onResumed = (payload) => setRemaining(payload.remaining);
     const onReset = (payload) => setRemaining(payload.remaining);
-
     const onBuzzed = (payload) => {
       sound.buzz();
       vibrate([30, 45, 30]);
       if (payload.playerId === playerId) notify('أنت الأول! جاوب الآن', 'honey');
     };
-
     const onCorrect = (payload) => {
       if (payload.playerId === playerId) {
         sound.correct();
@@ -193,7 +168,6 @@ export default function PlayerView({ playerId, onExit }) {
         notify(`إجابة صحيحة! +${payload.points}`, 'sage');
       }
     };
-
     const onWrong = (payload) => {
       if (payload.playerId === playerId) {
         sound.wrong();
@@ -201,7 +175,6 @@ export default function PlayerView({ playerId, onExit }) {
         notify('إجابة خاطئة — خرجت من هذه الجولة', 'coral');
       }
     };
-
     const onTimeUp = () => {
       sound.timeup();
       vibrate([50, 50, 50]);
@@ -210,40 +183,30 @@ export default function PlayerView({ playerId, onExit }) {
         transition: { duration: 0.55, ease: 'easeInOut' },
       });
     };
-
     const onResetBuzzers = () => {
       setOptimistic(false);
       notify('تمت إعادة الجولة — الجرس مفتوح', 'sky');
     };
-
     const onGameReset = () => notify('بدأت مسابقة جديدة', 'sky');
-
     const onQuestionRevealed = () => {
       sound.unlock();
       sound.start();
       notify('ظهر السؤال! استعد', 'honey');
     };
-
     const onHardReset = () => {
       setOptimistic(false);
       notify('تم تصفير اللعبة بالكامل', 'coral');
     };
-
-    // إنذار من المضيف
     const onWarning = (payload) => {
       setHoldPct(0);
       setWarning(payload);
       playAlert();
       vibrate([90, 60, 90, 60, 90]);
     };
-
-    // أسرع رد فعل — اسم الفائز
     const onReactionWinner = (name) => {
       if (!name) return;
       setReactionWinnerName(name);
     };
-
-    // إنهاء المسابقة فوراً — تنظيف حالة الألعاب المصغّرة وإظهار النتائج
     const onForcedEnd = () => {
       setTurboPoints(0);
       setScrambleInput('');
@@ -300,9 +263,7 @@ export default function PlayerView({ playerId, onExit }) {
     };
   }, [playerId, notify, shake, playAlert]);
 
-  /* ---------------------- قيم مشتقة ---------------------- */
   const players = state?.players || [];
-  // ترتيب تنازلي حسب النقاط — نسخة جديدة حتى لا نعدّل الحالة الأصلية
   const sortedPlayers = useMemo(
     () => [...players].sort((a, b) => b.score - a.score),
     [players]
@@ -322,14 +283,10 @@ export default function PlayerView({ playerId, onExit }) {
     ? players.find((item) => item.id === state.buzzedPlayerId)
     : null;
 
-  // مهلة الإجابة (٣ ثوانٍ)
   const answerActive = Boolean(state?.answerWindowActive) && iBuzzed;
   const iExpired = Boolean(state?.answerExpired) && state?.answerExpiredPlayerId === playerId;
   const answerSeconds = Math.max(0, Math.ceil(answerRemaining));
 
-  /* ---------- أنواع السؤال + لوحة المتصدرين ----------
-     يجب أن تُعرَّف قبل canBuzz لأنه يقرأ memoryImagePhase.
-     (وضعها بعده سابقاً سبّب: Cannot access 'memoryImagePhase' before initialization) */
   const isIntro = state?.question?.type === 'intro';
   const isMemory = state?.question?.type === 'memory';
   const isTurbo = state?.question?.type === 'turbo';
@@ -337,10 +294,8 @@ export default function PlayerView({ playerId, onExit }) {
   const isMath = state?.question?.type === 'math';
   const isReaction = state?.question?.type === 'reaction';
   const isAim = state?.question?.type === 'aim';
-  // أثناء عرض صورة الذاكرة: لا سؤال، الجرس معطّل، والعدّاد موقوف
   const memoryImagePhase = isMemory && memoryPhase === 'image';
 
-  // تظهر لوحة المتصدرين عند انتهاء الوقت، أو عند كشف النتيجة، أو أثناء انتظار السؤال التالي
   const showLeaderboard =
     !isIntro &&
     phase !== 'lobby' &&
@@ -369,7 +324,6 @@ export default function PlayerView({ playerId, onExit }) {
 
   const isDanger = remaining <= 3 && remaining > 0;
 
-  // فرق نقاطي في الجولة الأخيرة (يُصفَّر عند عرض سؤال جديد)
   useEffect(() => {
     if (prevScoreRef.current === null) {
       prevScoreRef.current = myScore;
@@ -379,7 +333,7 @@ export default function PlayerView({ playerId, onExit }) {
       setScoreDelta(myScore - prevScoreRef.current);
       prevScoreRef.current = myScore;
     } else if (myScore < prevScoreRef.current) {
-      setScoreDelta(0); // تصفير كامل أو خصم يدوي
+      setScoreDelta(0);
       prevScoreRef.current = myScore;
     }
   }, [myScore]);
@@ -388,13 +342,11 @@ export default function PlayerView({ playerId, onExit }) {
     if (state?.isQuestionRevealed) setScoreDelta(0);
   }, [state?.isQuestionRevealed, state?.questionIndex]);
 
-  // كائن ثابت (memo) لتجنّب إعادة رسم صفوف لوحة المتصدرين بلا داعٍ
   const deltaById = useMemo(
     () => (scoreDelta > 0 ? { [playerId]: scoreDelta } : {}),
     [scoreDelta, playerId]
   );
 
-  /* ---------------------- شاشة الفوز ---------------------- */
   const topPlayer = useMemo(() => {
     if (!players.length) return null;
     return [...players].sort((a, b) => b.score - a.score)[0];
@@ -402,12 +354,10 @@ export default function PlayerView({ playerId, onExit }) {
 
   const victoryWinner = state?.winner || (phase === 'finished' ? topPlayer : null);
 
-  // تصفير حالة الإخفاء عند بدء مسابقة جديدة
   useEffect(() => {
     if (phase !== 'finished') setVictoryDismissed(false);
   }, [phase]);
 
-  /* فقرة الذاكرة: صورة ٥ ثوانٍ ثم السؤال */
   useEffect(() => {
     if (state?.question?.type !== 'memory') return undefined;
 
@@ -416,7 +366,6 @@ export default function PlayerView({ playerId, onExit }) {
     return () => window.clearTimeout(timeoutId);
   }, [state?.questionIndex, state?.question?.type]);
 
-  /* الألعاب المصغّرة: تصفير العدّادات عند تغيّر السؤال */
   useEffect(() => {
     setTurboPoints(0);
     setScrambleInput('');
@@ -428,18 +377,16 @@ export default function PlayerView({ playerId, onExit }) {
     setAimScore(0);
   }, [state?.questionIndex]);
 
-  /* أسرع رد فعل: تأخير عشوائي ٢-٥ ثوانٍ قبل أن يخضرّ الزر */
   useEffect(() => {
     if (state?.question?.type !== 'reaction') return undefined;
 
     setReactionReady(false);
-    const delay = 2000 + Math.random() * 3000; // 2000ms – 5000ms
+    const delay = 2000 + Math.random() * 3000;
     const timeoutId = window.setTimeout(() => setReactionReady(true), delay);
 
     return () => window.clearTimeout(timeoutId);
   }, [state?.questionIndex, state?.question?.type]);
 
-  /* ---------------------- الضغط ---------------------- */
   const handleBuzz = useCallback(() => {
     sound.unlock();
     if (!canBuzz) {
@@ -464,7 +411,7 @@ export default function PlayerView({ playerId, onExit }) {
 
   useEffect(() => {
     const onKey = (event) => {
-      if (warning) return; // الإنذار فعّال: المسافة مخصّصة لإغلاقه
+      if (warning) return;
       if (event.code === 'Space' && event.target?.tagName !== 'INPUT') {
         event.preventDefault();
         handleBuzz();
@@ -474,14 +421,13 @@ export default function PlayerView({ playerId, onExit }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [handleBuzz, warning]);
 
-  /* الاستمرار على المسافة ٥ ثوانٍ لإغلاق الإنذار */
   useEffect(() => {
     if (!warning) return undefined;
 
     const onKeyDown = (event) => {
       if (event.code !== 'Space') return;
       event.preventDefault();
-      if (event.repeat) return; // نتجاهل التكرار التلقائي للمفتاح
+      if (event.repeat) return;
       beginHold();
     };
 
@@ -504,9 +450,7 @@ export default function PlayerView({ playerId, onExit }) {
     };
   }, [warning, beginHold, endHold]);
 
-  /* ---------------------- شكل الجرس ---------------------- */
   const buzzer = useMemo(() => {
-    // مرحلة صورة الذاكرة: الجرس معطّل تماماً
     if (memoryImagePhase) {
       return { bg: 'bg-stone-100 text-stone-400', emoji: '👁️', label: 'ركز!', hint: 'شاهد الصورة قبل اختفائها' };
     }
@@ -528,15 +472,12 @@ export default function PlayerView({ playerId, onExit }) {
     return { bg: 'bg-stone-100 text-stone-400', emoji: '🔔', label: 'استعد', hint: 'بانتظار المضيف' };
   }, [canBuzz, iBuzzed, iLockedOut, memoryImagePhase, optimistic, phase, someoneElseBuzzed]);
 
-  /* ---------------------- محتوى الحالة ---------------------- */
-  /* ---------------------- تحدي التيربو ---------------------- */
   const handleTurboClick = () => {
     const newPoints = turboPoints + 0.10;
     setTurboPoints(newPoints);
     socket.emit('turbo-score-update', { points: newPoints });
   };
 
-  /* ---------------------- فك التشفير ---------------------- */
   const handleScrambleSubmit = (event) => {
     event.preventDefault();
     if (scrambleSolved || hasFailed) return;
@@ -549,7 +490,6 @@ export default function PlayerView({ playerId, onExit }) {
     }
   };
 
-  /* ---------------------- الحسبة الخاطفة ---------------------- */
   const handleMathOption = (opt) => {
     if (mathSolved || hasFailed) return;
 
@@ -562,7 +502,6 @@ export default function PlayerView({ playerId, onExit }) {
   };
 
   const statusCard = () => {
-    // أسرع رد فعل — انتظر ثم اضغط (فوز فوري بدون حكم)
     if (state?.question?.type === 'reaction') {
       return (
         <div className="flex w-full max-w-2xl flex-col items-center">
@@ -586,7 +525,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // صيد الهدف — حرّك الهدف وصِده
     if (state?.question?.type === 'aim') {
       return (
         <div className="flex w-full max-w-2xl flex-col items-center">
@@ -608,7 +546,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // الحسبة الخاطفة — اختر الجواب الصحيح
     if (state?.question?.type === 'math') {
       const math = state.question;
       return (
@@ -651,7 +588,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // فك التشفير — رتّب الحروف
     if (state?.question?.type === 'scramble') {
       return (
         <div className="flex w-full flex-col items-center">
@@ -690,7 +626,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // تحدي التيربو — زر ضغط سريع (كل نقرة = ٠.٢٥ نقطة)
     if (state?.question?.type === 'turbo') {
       return (
         <button
@@ -703,7 +638,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // فقرة تمهيدية — بلا جرس وبلا مؤقّت
     if (state?.question?.type === 'intro') {
       return (
         <motion.div
@@ -711,7 +645,7 @@ export default function PlayerView({ playerId, onExit }) {
           initial={{ opacity: 0, scale: 0.94, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className="my-3 flex min-h-0 w-full flex-1 flex-col items-center justify-center rounded-3xl border border-amber-200 bg-white/80 p-5 text-center shadow-sm backdrop-blur-md md:p-8"
+          className="my-3 flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center justify-center rounded-3xl border border-amber-200 bg-white/80 p-5 text-center shadow-sm backdrop-blur-md md:p-8"
         >
           <motion.span
             initial={{ scale: 0.5, opacity: 0 }}
@@ -739,7 +673,6 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // فقرة الذاكرة — مرحلة الصورة (٥ ثوانٍ، بلا سؤال وبلا جرس)
     if (memoryImagePhase) {
       return (
         <motion.div
@@ -747,7 +680,7 @@ export default function PlayerView({ playerId, onExit }) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className="my-3 flex min-h-0 w-full flex-1 flex-col items-center justify-center rounded-3xl border border-amber-200 bg-white/80 p-3 text-center shadow-sm backdrop-blur-md md:p-5"
+          className="my-3 flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center justify-center rounded-3xl border border-amber-200 bg-white/80 p-3 text-center shadow-sm backdrop-blur-md md:p-5"
         >
           <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-4">
             {state.question.category}
@@ -772,7 +705,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'lobby') {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <span className="mb-3 inline-block text-4xl animate-bob">🎮</span>
           <p className="font-display text-xl font-black text-stone-800">أنت داخل المسابقة</p>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
@@ -785,7 +718,6 @@ export default function PlayerView({ playerId, onExit }) {
     if (phase === 'finished') {
       return (
         <div className="w-full">
-          {/* ترويسة النهاية */}
           <div className="mb-6 text-center">
             <span className="mb-3 inline-block text-5xl md:text-6xl">
               {myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎉'}
@@ -798,10 +730,8 @@ export default function PlayerView({ playerId, onExit }) {
             </p>
           </div>
 
-          {/* لوحة النهاية: الشهادة يساراً + الترتيب يميناً بنظام Grid صارم لمنع الانكماش */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full max-w-[1400px] mx-auto items-start p-2 sm:p-4">
             
-            {/* القسم الأيسر: الشهادة - تأخذ 8 أعمدة (حوالي 66%) وتكون واسعة */}
             <div className="col-span-1 xl:col-span-8 w-full flex justify-center order-1 xl:order-2 overflow-visible">
               {victoryWinner && (
                 <Certificate
@@ -811,7 +741,6 @@ export default function PlayerView({ playerId, onExit }) {
               )}
             </div>
 
-            {/* القسم الأيمن: الترتيب النهائي - يأخذ 4 أعمدة (حوالي 33%) */}
             <aside className="col-span-1 xl:col-span-4 w-full bg-white rounded-3xl shadow-xl border border-yellow-100 p-6 sticky top-6 order-2 xl:order-1 print:hidden">
               <h2 className="mb-5 text-center font-display text-xl font-black text-stone-800 md:text-2xl">
                 الترتيب النهائي 🏆
@@ -866,7 +795,7 @@ export default function PlayerView({ playerId, onExit }) {
     if (phase === 'reveal') {
       const isWinner = state?.lastAward?.playerId === playerId;
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <span className="mb-3 inline-block text-5xl">{isWinner ? '🏆' : '📖'}</span>
           <p className={cx('font-display text-2xl font-black', isWinner ? 'text-sage-600' : 'text-stone-700')}>
             {isWinner ? `إجابة صحيحة! +${state.lastAward.points}` : 'جاهز للسؤال التالي'}
@@ -883,7 +812,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (phase === 'timeup') {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <span className="mb-3 inline-block text-5xl">⌛</span>
           <p className="font-display text-2xl font-black text-stone-700">انتهى الوقت!</p>
           {!answerShownToAll && state?.question && (
@@ -896,10 +825,9 @@ export default function PlayerView({ playerId, onExit }) {
       );
     }
 
-    // أثناء السؤال
     if (!state?.isQuestionRevealed) {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <span className="mb-3 inline-block text-5xl animate-bob">⏳</span>
           <p className="font-display text-2xl font-black text-stone-700">استعد للسؤال القادم…</p>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
@@ -910,7 +838,6 @@ export default function PlayerView({ playerId, onExit }) {
     }
 
     if (iBuzzed || (optimistic && phase === 'question')) {
-      // مهلة الإجابة الجارية: عدّ تنازلي ٣ .. ٢ .. ١
       if (answerActive) {
         const danger = answerRemaining <= 1.5;
         return (
@@ -920,7 +847,7 @@ export default function PlayerView({ playerId, onExit }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 430, damping: 20 }}
             className={cx(
-              'w-full rounded-3xl border p-4 text-center shadow-soft-lg',
+              'w-full max-w-2xl rounded-3xl border p-4 text-center shadow-soft-lg',
               danger ? 'border-coral-300 bg-coral-50' : 'border-sage-200 bg-sage-50'
             )}
           >
@@ -939,7 +866,7 @@ export default function PlayerView({ playerId, onExit }) {
       }
 
       return (
-        <Card className="w-full border-sage-200 bg-sage-50 p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl border-sage-200 bg-sage-50 p-3 text-center md:p-4">
           <p className="font-display text-2xl font-black text-sage-700">🎤 أنت الأول!</p>
           <p className="mt-1.5 text-sm text-sage-600">
             جاوب بصوت عالٍ — نقاطك = الثواني المتبقية
@@ -950,7 +877,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (iLockedOut) {
       return (
-        <Card className="w-full border-coral-200 bg-coral-50 p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl border-coral-200 bg-coral-50 p-3 text-center md:p-4">
           <p className="font-display text-xl font-black text-coral-700">✖ خارج هذه الجولة</p>
           <p className="mt-1.5 text-sm text-coral-600">أجاب غيرك بشكل صحيح أو خرجت بخطأ.</p>
         </Card>
@@ -959,7 +886,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (someoneElseBuzzed || phase === 'buzzed') {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <p className="font-display text-xl font-black text-stone-700">
             🔒 {otherBuzzer ? otherBuzzer.name : 'أحدهم'} ضغط أولاً
           </p>
@@ -970,7 +897,7 @@ export default function PlayerView({ playerId, onExit }) {
 
     if (state?.timerRunning) {
       return (
-        <Card className="w-full p-3 text-center md:p-4">
+        <Card className="w-full max-w-2xl p-3 text-center md:p-4">
           <p className={cx('font-display text-3xl font-black', isDanger ? 'text-coral-500' : 'text-stone-800')}>
             اضغط الآن!
           </p>
@@ -982,23 +909,25 @@ export default function PlayerView({ playerId, onExit }) {
     }
 
     return (
-      <Card className="w-full p-3 text-center md:p-4">
+      <Card className="w-full max-w-2xl p-3 text-center md:p-4">
         <p className="font-display text-2xl font-black text-stone-300">استعد…</p>
         <p className="mt-1.5 text-sm text-stone-500">اقرأ السؤال على الشاشة، الجرس سيعمل قريباً.</p>
       </Card>
     );
   };
 
-  /* ================================================================ */
   return (
     <motion.div
       animate={shake}
-      className="relative mx-auto flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden bg-cream bg-gradient-to-b from-honey-50 via-cream to-sage-50 bg-glow px-4 py-3 safe-top"
+      /* إزالة max-w-2xl من الحاوية الرئيسية لتسمح بالعرض الكامل عند انتهاء اللعبة */
+      className={cx(
+        "relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-cream bg-gradient-to-b from-honey-50 via-cream to-sage-50 bg-glow py-3 safe-top",
+        phase === 'finished' ? "max-w-none px-4 lg:px-8" : "max-w-2xl px-4"
+      )}
     >
       <div className="pointer-events-none absolute inset-0 bg-dots opacity-40" />
 
-      {/* ============ الشريط العلوي ============ */}
-      <header className="relative z-10 shrink-0 py-2">
+      <header className="relative z-10 shrink-0 py-2 w-full max-w-2xl mx-auto">
         <div className="mx-auto flex w-full items-center gap-3 rounded-3xl border border-white/40 bg-white/80 px-4 py-2.5 shadow-sm backdrop-blur-md">
           <Avatar player={player} size="md" />
 
@@ -1045,15 +974,14 @@ export default function PlayerView({ playerId, onExit }) {
         </div>
       </header>
 
-      {/* ============ المحتوى ============ */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto scroll-soft px-0 py-2">
+      <main className={cx("relative z-10 flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto scroll-soft px-0 py-2", phase !== 'finished' && "justify-center w-full max-w-2xl mx-auto")}>
         {!isIntro && !isMath && !memoryImagePhase && state?.isQuestionRevealed && state?.question && phase !== 'lobby' && phase !== 'finished' && (
           <motion.div
             key={`q-${state.questionIndex}`}
             initial={{ opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-            className="my-3 flex min-h-0 w-full flex-1 flex-col items-center justify-center rounded-3xl border border-white/40 bg-white/80 p-4 text-center shadow-sm backdrop-blur-md"
+            className="my-3 flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center justify-center rounded-3xl border border-white/40 bg-white/80 p-4 text-center shadow-sm backdrop-blur-md"
           >
             {state.question.category ? (
               <div className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full w-max mx-auto mb-2">
@@ -1083,14 +1011,13 @@ export default function PlayerView({ playerId, onExit }) {
           </motion.div>
         )}
 
-        {/* الإجابة المكشوفة لجميع اللاعبين */}
         {answerShownToAll && (state?.question?.answer || revealedAnswer) && (
           <motion.div
             key={`answer-all-${state?.questionIndex}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className="w-full rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-center shadow-soft-lg"
+            className="w-full max-w-2xl rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-center shadow-soft-lg"
           >
             <p className="text-[11px] font-black tracking-[0.3em] text-emerald-600">الإجابة الصحيحة</p>
             <p className="mt-2 font-display text-3xl font-black leading-relaxed text-stone-800">
@@ -1109,13 +1036,12 @@ export default function PlayerView({ playerId, onExit }) {
           {statusCard()}
         </motion.div>
 
-        {/* ===== لوحة المتصدرين (بين الجولات) ===== */}
         {showLeaderboard && (
           <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full"
+            className="w-full max-w-2xl"
           >
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-xs font-black tracking-wide text-stone-500">🏆 المتصدرون</p>
@@ -1138,9 +1064,8 @@ export default function PlayerView({ playerId, onExit }) {
           </motion.div>
         )}
 
-        {/* الجرس */}
         {showBuzzer && (
-          <div className="relative flex shrink-0 flex-col items-center justify-center pb-4">
+          <div className="relative flex shrink-0 flex-col items-center justify-center pb-4 w-full max-w-2xl">
             {canBuzz && (
               <>
                 <span className="pointer-events-none absolute h-40 w-40 animate-pulse rounded-full bg-honey-400/40 blur-2xl sm:h-48 sm:w-48 md:h-56 md:w-56" />
@@ -1167,7 +1092,6 @@ export default function PlayerView({ playerId, onExit }) {
                   : 'border-stone-200/70 shadow-soft-inner'
               )}
             >
-              {/* طبقة تدرّج ناعمة تُضيف عمقاً ولمعاناً على أي لون أساسي */}
               <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/50 via-white/5 to-black/10" />
 
               <span className="relative text-5xl drop-shadow-sm md:text-6xl">{buzzer.emoji}</span>
@@ -1182,8 +1106,7 @@ export default function PlayerView({ playerId, onExit }) {
         )}
       </main>
 
-      {/* ============ التذييل ============ */}
-      <footer className="relative z-10 shrink-0 pb-1 pt-1 text-center safe-bottom">
+      <footer className="relative z-10 shrink-0 pb-1 pt-1 text-center safe-bottom w-full max-w-2xl mx-auto">
         <p className="text-[11px] font-bold text-stone-400">
           {phase === 'question' && state?.timerRunning && !state?.buzzedPlayerId && !iLockedOut
             ? 'أسرع بالضغط قبل أن يسبقك أحد!'
@@ -1191,7 +1114,6 @@ export default function PlayerView({ playerId, onExit }) {
         </p>
       </footer>
 
-      {/* ============ إشعار ============ */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -1213,7 +1135,6 @@ export default function PlayerView({ playerId, onExit }) {
         )}
       </AnimatePresence>
 
-      {/* ============ استبدال الجلسة ============ */}
       <AnimatePresence>
         {replaced && (
           <motion.div
@@ -1248,7 +1169,6 @@ export default function PlayerView({ playerId, onExit }) {
         )}
       </AnimatePresence>
 
-      {/* ============ انتهت مهلة الإجابة (٣ ثوانٍ) ============ */}
       <AnimatePresence>
         {iExpired && (
           <motion.div
@@ -1302,7 +1222,6 @@ export default function PlayerView({ playerId, onExit }) {
         )}
       </AnimatePresence>
 
-      {/* ============ إنذار من المضيف (اضغط مطوّلاً ٥ ثوانٍ) ============ */}
       <AnimatePresence>
         {warning && (
           <motion.div
@@ -1312,7 +1231,6 @@ export default function PlayerView({ playerId, onExit }) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[85] flex flex-col items-center justify-center bg-gradient-to-b from-coral-500 via-coral-600 to-coral-700 px-6 text-center"
           >
-            {/* وميض تحذيري */}
             <motion.span
               className="pointer-events-none absolute inset-0 border-[6px] border-white/25"
               animate={{ opacity: [0.15, 0.5, 0.15] }}
@@ -1348,7 +1266,6 @@ export default function PlayerView({ playerId, onExit }) {
               </motion.span>
             )}
 
-            {/* سبب الإنذار */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1359,7 +1276,6 @@ export default function PlayerView({ playerId, onExit }) {
               <p className="mt-2 text-lg font-black leading-relaxed text-white">{warning.reason}</p>
             </motion.div>
 
-            {/* شريط تقدّم الاستمرار */}
             <div className="mt-8 w-full max-w-sm">
               <div className="h-3.5 w-full overflow-hidden rounded-full bg-white/25 ring-1 ring-white/30">
                 <div
@@ -1376,7 +1292,6 @@ export default function PlayerView({ playerId, onExit }) {
               </p>
             </div>
 
-            {/* بديل للجوال: اضغط مع الاستمرار هنا */}
             <button
               type="button"
               onPointerDown={(event) => {
@@ -1395,7 +1310,6 @@ export default function PlayerView({ playerId, onExit }) {
         )}
       </AnimatePresence>
 
-      {/* ============ شاشة الفوز النهائية ============ */}
       <AnimatePresence>
         {phase === 'finished' && victoryWinner && !victoryDismissed && (
           <VictoryScreen
